@@ -10,7 +10,7 @@ export interface Produccion {
   huevos_b: number;
   huevos_c: number;
   huevos_blancos: number;
-  alimento: number;
+  alimento: number | null;
   muertes: number;
   notas?: string;
   created_at: string;

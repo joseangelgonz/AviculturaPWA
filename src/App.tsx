@@ -1,70 +1,89 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import LoginScreen from './screens/LoginScreen';
-import HomeScreen from './screens/HomeScreen';
-import SignUpScreen from './screens/SignUpScreen';
-import { ThemeProvider, createTheme, CircularProgress, Box } from '@mui/material';
+import { ThemeProvider, Box, CircularProgress, Typography } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
+import theme from './theme';
 import AuthService from './services/AuthService';
-import type { Session } from '@supabase/supabase-js';
+import LoginScreen from './screens/LoginScreen';
+import SignUpScreen from './screens/SignUpScreen';
+import DashboardScreen from './screens/DashboardScreen';
+import DashboardLayout from './components/DashboardLayout';
+import { AuthContext } from './AuthContext';
+import type { AuthState } from './AuthContext';
 
-// Un tema básico de Material-UI
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
+// --- Placeholder para rutas futuras ---
+const Placeholder = ({ title }: { title: string }) => (
+  <Box sx={{ p: 4 }}>
+    <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>{title}</Typography>
+    <Typography color="text.secondary">Próximamente</Typography>
+  </Box>
+);
 
 function App() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
 
   useEffect(() => {
-    // 1. Obtener la sesión inicial
+    // Obtener sesión inicial y rol
     AuthService.getSession()
-      .then((session) => {
-        setSession(session);
-        setLoading(false);
+      .then(async (session) => {
+        if (session) {
+          const role = await AuthService.getRole(session.user.id);
+          setAuth({ status: 'authenticated', session, role });
+        } else {
+          setAuth({ status: 'unauthenticated' });
+        }
       })
-      .catch((error) => {
-        console.error('Error getting session:', error);
-        setLoading(false); // Ensure loading is set to false even on error
+      .catch(() => {
+        setAuth({ status: 'unauthenticated' });
       });
 
-    // 2. Escuchar cambios de autenticación
-    const unsubscribe = AuthService.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (_event === 'SIGNED_IN' || _event === 'SIGNED_OUT' || _event === 'USER_UPDATED') {
-        setLoading(false);
+    // Escuchar cambios de autenticación
+    const unsubscribe = AuthService.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const role = await AuthService.getRole(session.user.id);
+        setAuth({ status: 'authenticated', session, role });
+      } else {
+        setAuth({ status: 'unauthenticated' });
       }
     });
 
-    // 3. Limpiar la suscripción al desmontar
     return () => {
       unsubscribe();
     };
   }, []);
 
-  if (loading) {
+  if (auth.status === 'loading') {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </ThemeProvider>
     );
   }
 
+  const isAuthenticated = auth.status === 'authenticated';
+
   return (
-    <ThemeProvider theme={darkTheme}>
-      <CssBaseline />
-      <Routes>
-        <Route path="/login" element={session ? <Navigate to="/" /> : <LoginScreen />} />
-        <Route path="/signup" element={session ? <Navigate to="/" /> : <SignUpScreen />} />
-        <Route
-          path="/"
-          element={session ? <HomeScreen /> : <Navigate to="/login" />}
-        />
-      </Routes>
-    </ThemeProvider>
+    <AuthContext.Provider value={{ auth }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Routes>
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginScreen />} />
+          <Route path="/signup" element={isAuthenticated ? <Navigate to="/" /> : <SignUpScreen />} />
+          <Route element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" />}>
+            <Route path="/" element={<DashboardScreen />} />
+            <Route path="/produccion" element={<Placeholder title="Producción" />} />
+            <Route path="/galpones" element={<Placeholder title="Galpones" />} />
+            <Route path="/cortes" element={<Placeholder title="Cortes" />} />
+            <Route path="/fincas" element={<Placeholder title="Fincas" />} />
+            <Route path="/reportes" element={<Placeholder title="Reportes" />} />
+            <Route path="/alertas" element={<Placeholder title="Alertas" />} />
+          </Route>
+        </Routes>
+      </ThemeProvider>
+    </AuthContext.Provider>
   );
 }
 

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
+import type { UserRole } from '../models/Usuario';
 
 const AuthService = {
   /**
@@ -59,6 +60,19 @@ const AuthService = {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;
     return user;
+  },
+
+  /**
+   * Obtiene el rol del usuario desde la tabla 'profiles'.
+   */
+  async getRole(userId: string): Promise<UserRole> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    if (error || !data) return 'operario';
+    return data.role as UserRole;
   },
 
   /**

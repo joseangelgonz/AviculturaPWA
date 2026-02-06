@@ -71,20 +71,27 @@ function getDaysAgoISO(days: number): string {
   return d.toISOString();
 }
 
-function sumEggs(row: Record<string, number | null>): number {
+function sumEggs(row: Pick<ProduccionRow, typeof EGG_COLUMNS[number]>): number {
   return EGG_COLUMNS.reduce((sum, col) => sum + (row[col] ?? 0), 0);
 }
 
-function weightedEggMass(row: Record<string, number | null>): number {
+function weightedEggMass(row: Pick<ProduccionRow, typeof EGG_COLUMNS[number]>): number {
   return EGG_COLUMNS.reduce((sum, col) => sum + (row[col] ?? 0) * EGG_WEIGHT_KG[col], 0);
 }
 
-type ProduccionRow = Record<string, number | null | string> & {
+export interface ProduccionRow {
   corte_id: string;
   fecha: string;
+  huevos_y: number | null;
+  huevos_aaa: number | null;
+  huevos_aa: number | null;
+  huevos_a: number | null;
+  huevos_b: number | null;
+  huevos_c: number | null;
+  huevos_blancos: number | null;
   alimento: number | null;
   muertes: number | null;
-};
+}
 
 type CorteRow = { id: string; numero_aves: number; galpon_id: string | null; fecha_inicio: string };
 

@@ -1,14 +1,14 @@
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme } from '@mui/material';
 import { PieChart } from '@mui/x-charts/PieChart';
 import type { EggClassificationBreakdown } from '../services/DashboardService';
-
-const COLORS = ['#3B82F6', '#6366F1', '#8B5CF6', '#A78BFA', '#60A5FA', '#38BDF8', '#7DD3FC'];
 
 interface EggClassificationChartProps {
   data: EggClassificationBreakdown[];
 }
 
 const EggClassificationChart = ({ data }: EggClassificationChartProps) => {
+  const { palette } = useTheme();
+  const COLORS = [palette.primary.main, palette.secondary.main, palette.primary.light, palette.primary.dark, palette.success.main, palette.warning.main, palette.error.main];
   if (data.length === 0) {
     return (
       <Card sx={{ height: '100%' }}>

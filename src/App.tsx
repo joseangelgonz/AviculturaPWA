@@ -23,31 +23,35 @@ function App() {
   const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
 
   useEffect(() => {
-    // Obtener sesión inicial y rol
-    AuthService.getSession()
-      .then(async (session) => {
-        if (session) {
-          const role = await AuthService.getRole(session.user.id);
-          setAuth({ status: 'authenticated', session, role });
-        } else {
-          setAuth({ status: 'unauthenticated' });
-        }
-      })
-      .catch(() => {
-        setAuth({ status: 'unauthenticated' });
-      });
+    let cancelled = false;
+    let listenerFired = false;
 
-    // Escuchar cambios de autenticación
-    const unsubscribe = AuthService.onAuthStateChange(async (_event, session) => {
+    async function resolveAuth(session: import('@supabase/supabase-js').Session | null) {
       if (session) {
         const role = await AuthService.getRole(session.user.id);
-        setAuth({ status: 'authenticated', session, role });
+        if (!cancelled) setAuth({ status: 'authenticated', session, role });
       } else {
-        setAuth({ status: 'unauthenticated' });
+        if (!cancelled) setAuth({ status: 'unauthenticated' });
       }
+    }
+
+    // Escuchar cambios de autenticación (fires before getSession resolves)
+    const unsubscribe = AuthService.onAuthStateChange((_event, session) => {
+      listenerFired = true;
+      resolveAuth(session);
     });
 
+    // Obtener sesión inicial — skip if the listener already provided a value
+    AuthService.getSession()
+      .then((session) => {
+        if (!listenerFired) resolveAuth(session);
+      })
+      .catch(() => {
+        if (!listenerFired && !cancelled) setAuth({ status: 'unauthenticated' });
+      });
+
     return () => {
+      cancelled = true;
       unsubscribe();
     };
   }, []);

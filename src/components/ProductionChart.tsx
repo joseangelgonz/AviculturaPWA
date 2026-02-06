@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Box } from '@mui/material';
+import { Card, CardContent, Typography, Box, useTheme } from '@mui/material';
 import { LineChart } from '@mui/x-charts/LineChart';
 import type { DailyProductionPoint } from '../services/DashboardService';
 
@@ -7,6 +7,7 @@ interface ProductionChartProps {
 }
 
 const ProductionChart = ({ data }: ProductionChartProps) => {
+  const theme = useTheme();
   if (data.length === 0) {
     return (
       <Card sx={{ height: '100%' }}>
@@ -38,7 +39,7 @@ const ProductionChart = ({ data }: ProductionChartProps) => {
             data: data.map((d) => d.total),
             area: true,
             label: 'Huevos',
-            color: '#3B82F6',
+            color: theme.palette.primary.main,
             showMark: false,
           }]}
           height={280}

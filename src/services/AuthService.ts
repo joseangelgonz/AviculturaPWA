@@ -72,7 +72,8 @@ const AuthService = {
       .eq('id', userId)
       .single();
     if (error || !data) return 'operario';
-    return data.role as UserRole;
+    const VALID_ROLES: readonly string[] = ['administrador', 'operario'];
+    return VALID_ROLES.includes(data.role) ? (data.role as UserRole) : 'operario';
   },
 
   /**

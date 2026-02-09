@@ -1,17 +1,9 @@
 // src/models/Produccion.ts
 export interface Produccion {
-  id: number;
-  corte_id: number;
+  corte_id: string; // Asumiendo UUID o string de referencia
   fecha: string; // ISO 8601
-  huevos_y: number;
-  huevos_aaa: number;
-  huevos_aa: number;
-  huevos_a: number;
-  huevos_b: number;
-  huevos_c: number;
-  huevos_blancos: number;
-  alimento: number | null;
-  muertes: number;
-  notas?: string;
-  created_at: string;
+  numero_secuencia: number;
+  producto_codigo: number; // Referencia al codigo INTEGER de productos
+  cantidad: number;
 }
+

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import type { Producto } from '../models/Producto';
+
 
 // --- Tipos ---
 export interface KpiSummary {
@@ -32,28 +34,9 @@ export interface DashboardData {
   readonly alerts: DashboardAlert[];
 }
 
-// Pesos promedio por clasificación de huevo (kg)
-const EGG_WEIGHT_KG: Record<string, number> = {
-  huevos_y: 0.073,
-  huevos_aaa: 0.067,
-  huevos_aa: 0.062,
-  huevos_a: 0.056,
-  huevos_b: 0.049,
-  huevos_c: 0.042,
-  huevos_blancos: 0.060,
-};
+const MORTALIDAD_PRODUCT_CODE = 999; // Placeholder: Assign a valid product code for mortality from your 'productos' table
+const ALIMENTO_PRODUCT_CODE = 998; // Placeholder: Assign a valid product code for feed from your 'productos' table
 
-const EGG_COLUMNS = ['huevos_y', 'huevos_aaa', 'huevos_aa', 'huevos_a', 'huevos_b', 'huevos_c', 'huevos_blancos'] as const;
-
-const EGG_LABELS: Record<string, string> = {
-  huevos_y: 'Y',
-  huevos_aaa: 'AAA',
-  huevos_aa: 'AA',
-  huevos_a: 'A',
-  huevos_b: 'B',
-  huevos_c: 'C',
-  huevos_blancos: 'Blancos',
-};
 
 // --- Utilidades de fecha ---
 function getTodayRange(): { start: string; end: string } {
@@ -71,81 +54,139 @@ function getDaysAgoISO(days: number): string {
   return d.toISOString();
 }
 
-function sumEggs(row: Pick<ProduccionRow, typeof EGG_COLUMNS[number]>): number {
-  return EGG_COLUMNS.reduce((sum, col) => sum + (row[col] ?? 0), 0);
-}
+import type { Produccion } from '../models/Produccion';
 
-function weightedEggMass(row: Pick<ProduccionRow, typeof EGG_COLUMNS[number]>): number {
-  return EGG_COLUMNS.reduce((sum, col) => sum + (row[col] ?? 0) * EGG_WEIGHT_KG[col], 0);
-}
-
-export interface ProduccionRow {
-  corte_id: string;
-  fecha: string;
-  huevos_y: number | null;
-  huevos_aaa: number | null;
-  huevos_aa: number | null;
-  huevos_a: number | null;
-  huevos_b: number | null;
-  huevos_c: number | null;
-  huevos_blancos: number | null;
-  alimento: number | null;
-  muertes: number | null;
-}
 
 type CorteRow = { id: string; numero_aves: number; galpon_id: string | null; fecha_inicio: string };
 
 // --- Derivar datos desde 2 consultas ---
-function deriveKpis(cortes: CorteRow[], produccion: ProduccionRow[], today: { start: string; end: string }, sevenDaysAgo: string): KpiSummary {
+function deriveKpis(
+  cortes: CorteRow[],
+  produccion: Produccion[],
+  productMap: Map<number, Producto>,
+  today: { start: string; end: string },
+  sevenDaysAgo: string
+): KpiSummary {
   const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
 
+  // Helper to identify product types
+  const isEggProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.descripcion?.includes('Huevo') : false; // Assuming eggs have 'Huevo' in description
+  };
+  const isMortalityProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.codigo === MORTALIDAD_PRODUCT_CODE : false; // Assuming a specific code for mortality
+  };
+  const isFeedProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.codigo === ALIMENTO_PRODUCT_CODE : false; // Assuming a specific code for feed
+  };
+
   const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
-  const todayProduction = todayRows.length > 0 ? todayRows.reduce((sum, row) => sum + sumEggs(row), 0) : null;
+  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
+
+  // Today Production (Eggs)
+  const todayEggProduction = todayRows
+    .filter((p) => isEggProduct(p.producto_codigo))
+    .reduce((sum, p) => sum + p.cantidad, 0);
+  const todayProduction = todayEggProduction > 0 ? todayEggProduction : null;
 
   const productionRate = todayProduction !== null && totalAves > 0
     ? Math.round((todayProduction / totalAves) * 1000) / 10
     : null;
 
-  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
-  const weeklyMortality = weekRows.length > 0
-    ? weekRows.reduce((sum, row) => sum + (row.muertes ?? 0), 0)
-    : null;
+  // Weekly Mortality
+  const weeklyMortality = weekRows
+    .filter((p) => isMortalityProduct(p.producto_codigo))
+    .reduce((sum, p) => sum + p.cantidad, 0);
+  const totalWeeklyMortality = weeklyMortality > 0 ? weeklyMortality : null;
 
+  // FCR Calculation (Feed Conversion Ratio)
   let fcr: number | null = null;
   if (weekRows.length > 0) {
-    const totalAlimento = weekRows.reduce((sum, row) => sum + ((row.alimento as number) ?? 0), 0);
-    const totalEggMass = weekRows.reduce((sum, row) => sum + weightedEggMass(row), 0);
+    const totalAlimento = weekRows
+      .filter((p) => isFeedProduct(p.producto_codigo))
+      .reduce((sum, p) => sum + p.cantidad, 0);
+
+    // This part is complex as we don't have individual egg weights in this structure directly.
+    // For now, let's simplify or assume an average egg weight.
+    // Ideally, productMap should contain average weight for egg products.
+    // For this refactor, let's use a placeholder average weight for eggs.
+    const AVERAGE_EGG_WEIGHT_KG = 0.060; // Placeholder average weight
+    const totalEggMass = weekRows
+      .filter((p) => isEggProduct(p.producto_codigo))
+      .reduce((sum, p) => sum + (p.cantidad * AVERAGE_EGG_WEIGHT_KG), 0);
+
     fcr = totalEggMass > 0 ? Math.round((totalAlimento / totalEggMass) * 100) / 100 : null;
   }
 
-  return { todayProduction, productionRate, weeklyMortality, fcr };
+  return { todayProduction, productionRate, weeklyMortality: totalWeeklyMortality, fcr };
 }
 
-function deriveChart(produccion: ProduccionRow[]): DailyProductionPoint[] {
+function deriveChart(produccion: Produccion[], productMap: Map<number, Producto>): DailyProductionPoint[] {
   if (produccion.length === 0) return [];
 
+  const isEggProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.descripcion?.includes('Huevo') : false; // Assuming eggs have 'Huevo' in description
+  };
+
   const byDate = new Map<string, number>();
-  for (const row of produccion) {
+  for (const row of produccion.filter(p => isEggProduct(p.producto_codigo))) {
     const date = new Date(row.fecha).toLocaleDateString('es-CO');
-    byDate.set(date, (byDate.get(date) ?? 0) + sumEggs(row));
+    byDate.set(date, (byDate.get(date) ?? 0) + row.cantidad);
   }
 
   return Array.from(byDate.entries()).map(([fecha, total]) => ({ fecha, total }));
 }
 
-function deriveClassification(produccion: ProduccionRow[], today: { start: string; end: string }): EggClassificationBreakdown[] {
+function deriveClassification(produccion: Produccion[], productMap: Map<number, Producto>, today: { start: string; end: string }): EggClassificationBreakdown[] {
   const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
   if (todayRows.length === 0) return [];
 
-  return EGG_COLUMNS.map((col) => ({
-    classification: EGG_LABELS[col],
-    count: todayRows.reduce((sum, row) => sum + ((row[col] as number) ?? 0), 0),
-  })).filter((item) => item.count > 0);
+  const isEggProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.descripcion?.includes('Huevo') : false;
+  };
+
+  const classificationMap = new Map<number, number>();
+  for (const row of todayRows) {
+    if (isEggProduct(row.producto_codigo)) {
+      const currentCount = classificationMap.get(row.producto_codigo) ?? 0;
+      classificationMap.set(row.producto_codigo, currentCount + row.cantidad);
+    }
+  }
+
+  return Array.from(classificationMap.entries())
+    .map(([codigo, count]) => ({
+      classification: productMap.get(codigo)?.descripcion || `Producto ${codigo}`, // Use product description as label
+      count: count,
+    }))
+    .filter((item) => item.count > 0);
 }
 
-function deriveAlerts(cortes: CorteRow[], produccion: ProduccionRow[], today: { start: string; end: string }, sevenDaysAgo: string): DashboardAlert[] {
+function deriveAlerts(
+  cortes: CorteRow[],
+  produccion: Produccion[],
+  productMap: Map<number, Producto>,
+  today: { start: string; end: string },
+  sevenDaysAgo: string
+): DashboardAlert[] {
   const alerts: DashboardAlert[] = [];
+  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
+
   const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
+  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
+
+  const isMortalityProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.codigo === MORTALIDAD_PRODUCT_CODE : false;
+  };
+  const isEggProduct = (codigo: number) => {
+    const product = productMap.get(codigo);
+    return product ? product.descripcion?.includes('Huevo') : false;
+  };
 
   // Sin datos hoy por corte
   const cortesConDatosHoy = new Set(todayRows.map((d) => d.corte_id));
@@ -160,40 +201,44 @@ function deriveAlerts(cortes: CorteRow[], produccion: ProduccionRow[], today: { 
   }
 
   // Mortalidad alta (muertes hoy > 2x promedio diario últimos 7 días)
-  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
   for (const corte of cortes) {
-    const corteProd = weekRows.filter((p) => p.corte_id === corte.id);
-    if (corteProd.length < 7) continue;
+    const corteProdMortality = weekRows.filter((p) => p.corte_id === corte.id && isMortalityProduct(p.producto_codigo));
+    if (corteProdMortality.length === 0) continue; // No mortality records for this corte in the week
 
-    const todayMuertes = corteProd
+    const todayMortality = corteProdMortality
       .filter((p) => p.fecha >= today.start && p.fecha < today.end)
-      .reduce((sum, p) => sum + (p.muertes ?? 0), 0);
+      .reduce((sum, p) => sum + p.cantidad, 0);
 
-    const pastProd = corteProd.filter((p) => p.fecha < today.start);
-    if (pastProd.length === 0) continue;
+    const pastMortality = corteProdMortality
+      .filter((p) => p.fecha < today.start)
+      .reduce((sum, p) => sum + p.cantidad, 0);
 
-    const avgMuertes = pastProd.reduce((sum, p) => sum + (p.muertes ?? 0), 0) / pastProd.length;
+    const pastMortalityDays = new Set(corteProdMortality.filter(p => p.fecha < today.start).map(p => p.fecha.split('T')[0])).size;
 
-    if (todayMuertes > avgMuertes * 2 && avgMuertes > 0) {
+    const avgMortality = pastMortalityDays > 0 ? pastMortality / pastMortalityDays : 0;
+
+    if (todayMortality > avgMortality * 2 && avgMortality > 0) {
       alerts.push({
         id: `mortalidad-${corte.id}`,
         severity: 'error',
-        message: `Alta mortalidad en Corte #${corte.id}: ${todayMuertes} muertes hoy (promedio: ${Math.round(avgMuertes)}).`,
+        message: `Alta mortalidad en Corte #${corte.id}: ${todayMortality} muertes hoy (promedio: ${Math.round(avgMortality)}).`,
       });
     }
   }
 
   // Baja producción (tasa < 80%)
-  if (todayRows.length > 0) {
-    const totalEggs = todayRows.reduce((sum, row) => sum + sumEggs(row), 0);
-    const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
-    const rate = totalAves > 0 ? (totalEggs / totalAves) * 100 : 0;
+  if (totalAves > 0) {
+    const todayEggProduction = todayRows
+      .filter((p) => isEggProduct(p.producto_codigo))
+      .reduce((sum, p) => sum + p.cantidad, 0);
+
+    const rate = (todayEggProduction / totalAves) * 100;
 
     if (rate < 80 && rate > 0) {
       alerts.push({
         id: 'baja-produccion',
         severity: 'warning',
-        message: `Tasa de producción baja: ${rate.toFixed(1)}% (objetivo: ≥80%).`,
+        message: `Tasa de producción de huevos baja: ${rate.toFixed(1)}% (objetivo: ≥80%).`,
       });
     }
   }
@@ -231,22 +276,42 @@ const DashboardService = {
 
     const corteIds = cortes.map((c) => c.id);
 
-    // 2. Consultar toda la producción de los últimos 30 días (cubre KPIs 7d, hoy, y gráfica)
-    const { data: produccion } = await supabase
+    // 2. Consultar toda la producción de los últimos 30 días
+    const { data: produccionData, error: produccionError } = await supabase
       .from('produccion')
-      .select('corte_id, fecha, huevos_y, huevos_aaa, huevos_aa, huevos_a, huevos_b, huevos_c, huevos_blancos, alimento, muertes')
+      .select('corte_id, fecha, numero_secuencia, producto_codigo, cantidad')
       .in('corte_id', corteIds)
       .gte('fecha', thirtyDaysAgo)
       .order('fecha', { ascending: true });
+    
+    if (produccionError) {
+      console.error('Error al obtener producción:', produccionError);
+      // Depending on desired behavior, return EMPTY_DASHBOARD or rethrow
+      throw new Error('No se pudo obtener la producción.');
+    }
 
-    const rows = (produccion ?? []) as ProduccionRow[];
+    const produccionRows = (produccionData ?? []) as Produccion[];
 
-    // 3. Derivar todos los datos desde las 2 consultas
+    // 3. Consultar productos y unidades de medida
+    const { data: productosData, error: productosError } = await supabase
+      .from('productos')
+      .select('*');
+    if (productosError) {
+      console.error('Error al obtener productos:', productosError);
+      throw new Error('No se pudieron obtener los productos.');
+    }
+    const products: Producto[] = productosData;
+    const productMap = new Map<number, Producto>(products.map(p => [p.codigo, p]));
+
+
+
+
+    // 4. Derivar todos los datos desde las consultas
     return {
-      kpis: deriveKpis(cortes as CorteRow[], rows, today, sevenDaysAgo),
-      chart: deriveChart(rows),
-      classification: deriveClassification(rows, today),
-      alerts: deriveAlerts(cortes as CorteRow[], rows, today, sevenDaysAgo),
+      kpis: deriveKpis(cortes as CorteRow[], produccionRows, productMap, today, sevenDaysAgo),
+      chart: deriveChart(produccionRows, productMap),
+      classification: deriveClassification(produccionRows, productMap, today),
+      alerts: deriveAlerts(cortes as CorteRow[], produccionRows, productMap, today, sevenDaysAgo),
     };
   },
 };

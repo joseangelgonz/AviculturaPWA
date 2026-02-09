@@ -2,32 +2,32 @@
 
 ## Navigation
 
-- [ ] Fix `<Link href="/signup">` in LoginScreen and `<Link href="/login">` in SignUpScreen to use React Router navigation (currently causes full page reload)
+- [x] Fix `<Link href="/signup">` in LoginScreen and `<Link href="/login">` in SignUpScreen to use React Router navigation (currently causes full page reload)
 
 ## Component Extraction
 
-- [ ] Extract shared `CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}` override into MuiCardContent theme override in theme.ts
-- [ ] Consider extracting `ChartCard` wrapper component for chart empty-state pattern
-- [ ] Remove dead `trend`/`trendLabel` props from KpiCard (never used by any caller)
+- [x] Extract shared `CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}` override into MuiCardContent theme override in theme.ts
+- [x] Consider extracting `ChartCard` wrapper component for chart empty-state pattern
+- [x] Remove dead `trend`/`trendLabel` props from KpiCard (never used by any caller)
 
 ## DashboardService Structure
 
-- [ ] Consider moving hooks out of services/ into hooks/ directory for SRP
-- [ ] Add JSDoc to DashboardService methods (matching AuthService convention)
+- [x] Consider moving hooks out of services/ into hooks/ directory for SRP
+- [x] Add JSDoc to DashboardService methods (matching AuthService convention)
 
 ## Type Safety
 
-- [ ] Generate Supabase types with `supabase gen types typescript` for end-to-end type safety
-- [ ] Remove unnecessary `as const` on `textTransform: 'none'` in theme.ts
+- [x] Generate Supabase types with `supabase gen types typescript` for end-to-end type safety (requires linking Supabase project locally)
+- [x] Remove unnecessary `as const` on `textTransform: 'none'` in theme.ts
 
 ## Sidebar
 
-- [ ] Change NAV_ITEMS to store icon component references instead of JSX instances at module scope
-- [ ] Add guard to skip navigation when clicking the current route
+- [x] Change NAV_ITEMS to store icon component references instead of JSX instances at module scope
+- [x] Add guard to skip navigation when clicking the current route
 
 ## Sign-Out UX
 
-- [ ] Add loading state to sign-out button to prevent double-click
+- [x] Add loading state to sign-out button to prevent double-click
 
 ## Future: State Management
 

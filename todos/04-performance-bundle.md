@@ -2,17 +2,17 @@
 
 ## Code Splitting
 
-- [ ] Lazy-load chart components with `React.lazy()` — moves ~40-80KB of @mui/x-charts out of initial bundle
+- [x] Lazy-load chart components with `React.lazy()` — moves ~40-80KB of @mui/x-charts out of initial bundle
 - [ ] Add route-level code splitting for future screens (Produccion, Galpones, etc.)
 
 ## Font Loading
 
-- [ ] Self-host Inter font via `@fontsource/inter` — eliminates external Google Fonts request, enables offline PWA support
+- [x] Self-host Inter font via `@fontsource/inter` — eliminates external Google Fonts request, enables offline PWA support
 
 ## Component Optimization
 
-- [ ] Add `React.memo` to ProductionChart and EggClassificationChart to prevent unnecessary SVG recalculations
-- [ ] Add `useMemo` for chart data transformations (low priority — negligible at current data scale)
+- [x] Add `React.memo` to ProductionChart and EggClassificationChart to prevent unnecessary SVG recalculations
+- [x] Add `useMemo` for chart data transformations (low priority — negligible at current data scale)
 
 ## Database
 

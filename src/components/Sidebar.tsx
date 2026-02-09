@@ -15,15 +15,28 @@ import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
+import type { UserRole } from '../models/Usuario';
+import type { SvgIconComponent } from '@mui/icons-material';
 
-const NAV_ITEMS = [
-  { label: 'Panel', icon: <DashboardOutlined />, path: '/' },
-  { label: 'Producción', icon: <EggOutlined />, path: '/produccion' },
-  { label: 'Galpones', icon: <WarehouseOutlined />, path: '/galpones' },
-  { label: 'Cortes', icon: <AgricultureOutlined />, path: '/cortes' },
-  { label: 'Fincas', icon: <BusinessOutlined />, path: '/fincas' },
-  { label: 'Reportes', icon: <AssessmentOutlined />, path: '/reportes' },
-  { label: 'Alertas', icon: <NotificationsOutlined />, path: '/alertas' },
+interface NavItem {
+  label: string;
+  path: string;
+  Icon: SvgIconComponent;
+  roles: readonly UserRole[];
+}
+
+const ALL_ROLES: readonly UserRole[] = ['administrador', 'operario'];
+const ADMIN_ONLY: readonly UserRole[] = ['administrador'];
+
+const NAV_ITEMS: readonly NavItem[] = [
+  { label: 'Panel', path: '/', Icon: DashboardOutlined, roles: ALL_ROLES },
+  { label: 'Producción', path: '/produccion', Icon: EggOutlined, roles: ALL_ROLES },
+  { label: 'Galpones', path: '/galpones', Icon: WarehouseOutlined, roles: ALL_ROLES },
+  { label: 'Cortes', path: '/cortes', Icon: AgricultureOutlined, roles: ALL_ROLES },
+  { label: 'Fincas', path: '/fincas', Icon: BusinessOutlined, roles: ADMIN_ONLY },
+  { label: 'Reportes', path: '/reportes', Icon: AssessmentOutlined, roles: ADMIN_ONLY },
+  { label: 'Alertas', path: '/alertas', Icon: NotificationsOutlined, roles: ADMIN_ONLY },
 ];
 
 interface SidebarProps {
@@ -33,9 +46,17 @@ interface SidebarProps {
 const Sidebar = ({ onNavigate }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { auth } = useAuth();
+
+  const userRole: UserRole =
+    auth.status === 'authenticated' ? auth.role : 'operario';
+
+  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
   const handleClick = (path: string) => {
-    navigate(path);
+    if (location.pathname !== path) {
+      navigate(path);
+    }
     onNavigate?.();
   };
 
@@ -58,7 +79,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       <Divider sx={{ mx: 2, my: 1 }} />
 
       <List sx={{ flex: 1, px: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const selected = location.pathname === item.path;
           return (
             <ListItemButton
@@ -75,7 +96,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
                   color: selected ? 'primary.main' : 'text.secondary',
                 }}
               >
-                {item.icon}
+                <item.Icon />
               </ListItemIcon>
               <ListItemText
                 primary={item.label}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Container, Typography, Box, TextField, Button, Alert, Link } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 
 const LoginScreen = () => {
@@ -19,8 +19,9 @@ const LoginScreen = () => {
       await AuthService.signIn(email, password);
       // Redirigir al usuario a la página principal después de iniciar sesión
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Por favor, inténtalo de nuevo.');
+    } catch {
+      // Mensaje genérico para prevenir enumeración de correos electrónicos
+      setError('Credenciales inválidas. Por favor, verifica tu correo y contraseña.');
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ const LoginScreen = () => {
               {error}
             </Alert>
           )}
-          <Link href="/signup" variant="body2" sx={{ mt: 2 }}>
+          <Link component={RouterLink} to="/signup" variant="body2" sx={{ mt: 2 }}>
             ¿No tienes una cuenta? Regístrate
           </Link>
         </Box>

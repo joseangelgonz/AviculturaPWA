@@ -13,23 +13,27 @@ import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../AuthContext';
-import AuthService from '../services/AuthService';
 
 const DRAWER_WIDTH = 260;
 
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Nuevo estado para controlar el colapso en desktop
-  const { auth } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
+  const { auth, signOut } = useAuth();
 
   const userEmail =
     auth.status === 'authenticated' ? auth.session.user.email : '';
 
   const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
-      await AuthService.signOut();
-    } catch (err: unknown) {
-      console.error('Error al cerrar sesión:', err);
+      await signOut();
+    } catch {
+      // Auth state listener en App.tsx maneja la redirección
+    } finally {
+      setSigningOut(false);
     }
   };
 
@@ -56,7 +60,6 @@ const DashboardLayout = () => {
           >
             <MenuIcon />
           </IconButton>
-          {/* Nuevo botón para alternar el sidebar en desktop */}
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -80,9 +83,10 @@ const DashboardLayout = () => {
             size="small"
             startIcon={<LogoutOutlined />}
             onClick={handleSignOut}
+            disabled={signingOut}
             sx={{ color: 'text.secondary' }}
           >
-            Salir
+            {signingOut ? 'Cerrando...' : 'Salir'}
           </Button>
         </Toolbar>
       </AppBar>
@@ -109,7 +113,7 @@ const DashboardLayout = () => {
           display: { xs: 'none', md: 'block' },
           '& .MuiDrawer-paper': {
             width: isSidebarOpen ? DRAWER_WIDTH : 0,
-            overflowX: 'hidden', // Oculta el scrollbar cuando está colapsado
+            overflowX: 'hidden',
             transition: (theme) =>
               theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,

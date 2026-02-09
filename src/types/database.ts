@@ -178,26 +178,33 @@ export type Database = {
       produccion: {
         Row: {
           cantidad: number
-          corte_id: string
           fecha: string
+          galpon_id: number
           numero_secuencia: number
           producto_codigo: number
         }
         Insert: {
           cantidad: number
-          corte_id: string
           fecha: string
+          galpon_id: number
           numero_secuencia: number
           producto_codigo: number
         }
         Update: {
           cantidad?: number
-          corte_id?: string
           fecha?: string
+          galpon_id?: number
           numero_secuencia?: number
           producto_codigo?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "produccion_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produccion_producto_codigo_fkey"
             columns: ["producto_codigo"]

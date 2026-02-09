@@ -1,8 +1,8 @@
 -- 05: Índice compuesto en produccion + políticas RLS para productos y unidades_medida
 
--- 1. Índice compuesto en produccion(corte_id, fecha) para optimizar consultas del dashboard
-CREATE INDEX IF NOT EXISTS idx_produccion_corte_fecha
-  ON public.produccion (corte_id, fecha);
+-- 1. Índice compuesto en produccion(galpon_id, fecha) para optimizar consultas del dashboard
+CREATE INDEX IF NOT EXISTS idx_produccion_galpon_fecha
+  ON public.produccion (galpon_id, fecha);
 
 -- 2. Habilitar RLS en productos y unidades_medida
 ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;

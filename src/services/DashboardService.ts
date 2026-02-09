@@ -188,9 +188,9 @@ function deriveAlerts(
   };
 
   // Sin datos hoy por corte
-  const cortesConDatosHoy = new Set(todayRows.map((d) => d.corte_id));
+  const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
   for (const corte of cortes) {
-    if (!cortesConDatosHoy.has(String(corte.id))) {
+    if (!galponesConDatosHoy.has(corte.galpon_id)) {
       alerts.push({
         id: `sin-datos-${corte.id}`,
         severity: 'info',
@@ -201,7 +201,7 @@ function deriveAlerts(
 
   // Mortalidad alta (muertes hoy > 2x promedio diario últimos 7 días)
   for (const corte of cortes) {
-    const corteProdMortality = weekRows.filter((p) => p.corte_id === String(corte.id) && isMortalityProduct(p.producto_codigo));
+    const corteProdMortality = weekRows.filter((p) => p.galpon_id === corte.galpon_id && isMortalityProduct(p.producto_codigo));
     if (corteProdMortality.length === 0) continue; // No mortality records for this corte in the week
 
     const todayMortality = corteProdMortality
@@ -278,13 +278,13 @@ const DashboardService = {
       return EMPTY_DASHBOARD;
     }
 
-    const corteIds = cortes.map((c) => String(c.id));
+    const galponIds = cortes.map((c) => c.galpon_id);
 
-    // 2. Consultar toda la producción de los últimos 30 días
+    // 2. Consultar toda la producción de los últimos 30 días (por galpon_id)
     const { data: produccionData, error: produccionError } = await supabase
       .from('produccion')
-      .select('corte_id, fecha, numero_secuencia, producto_codigo, cantidad')
-      .in('corte_id', corteIds)
+      .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
+      .in('galpon_id', galponIds)
       .gte('fecha', thirtyDaysAgo)
       .order('fecha', { ascending: true });
     

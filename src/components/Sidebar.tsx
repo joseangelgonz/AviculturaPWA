@@ -14,6 +14,10 @@ import AgricultureOutlined from '@mui/icons-material/AgricultureOutlined';
 import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
 import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
 import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
+import TakeoutDiningOutlined from '@mui/icons-material/TakeoutDiningOutlined';
+import EggAltOutlined from '@mui/icons-material/EggAltOutlined';
+import BloodtypeOutlined from '@mui/icons-material/BloodtypeOutlined';
+import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import type { UserRole } from '../models/Usuario';
@@ -28,6 +32,7 @@ interface NavItem {
 
 const ALL_ROLES: readonly UserRole[] = ['administrador', 'operario'];
 const ADMIN_ONLY: readonly UserRole[] = ['administrador'];
+const OPERARIO_ONLY: readonly UserRole[] = ['operario'];
 
 const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Panel', path: '/', Icon: DashboardOutlined, roles: ALL_ROLES },
@@ -37,6 +42,10 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Fincas', path: '/fincas', Icon: BusinessOutlined, roles: ADMIN_ONLY },
   { label: 'Reportes', path: '/reportes', Icon: AssessmentOutlined, roles: ADMIN_ONLY },
   { label: 'Alertas', path: '/alertas', Icon: NotificationsOutlined, roles: ADMIN_ONLY },
+  { label: 'Recolección', path: '/operario/recoleccion', Icon: EggAltOutlined, roles: OPERARIO_ONLY },
+  { label: 'Alimentación', path: '/operario/alimentacion', Icon: TakeoutDiningOutlined, roles: OPERARIO_ONLY },
+  { label: 'Mortalidad', path: '/operario/mortalidad', Icon: BloodtypeOutlined, roles: OPERARIO_ONLY },
+  { label: 'Clasificación', path: '/operario/clasificacion', Icon: CategoryOutlined, roles: OPERARIO_ONLY },
 ];
 
 interface SidebarProps {

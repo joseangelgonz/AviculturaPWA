@@ -7,9 +7,15 @@ import AuthService from './services/AuthService';
 import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import OperarioDashboardScreen from './screens/OperarioDashboardScreen';
+import RecoleccionForm from './components/RecoleccionForm';
+import AlimentacionForm from './components/AlimentacionForm';
+import MortalidadForm from './components/MortalidadForm';
+import ClasificacionForm from './components/ClasificacionForm';
 import DashboardLayout from './components/DashboardLayout';
 import RoleGuard from './components/RoleGuard';
 import { AuthContext } from './AuthContext';
+import { SelectedGalponProvider } from './components/SelectedGalponProvider';
 import type { AuthState } from './AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -84,6 +90,7 @@ function App() {
   }
 
   const isAuthenticated = auth.status === 'authenticated';
+  const userRole = auth.status === 'authenticated' ? auth.role : undefined;
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -94,13 +101,25 @@ function App() {
             <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginScreen />} />
             <Route path="/signup" element={isAuthenticated ? <Navigate to="/" /> : <SignUpScreen />} />
             <Route element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" />}>
-              <Route path="/" element={<DashboardScreen />} />
+              <Route path="/" element={userRole === 'operario' ? (
+                <SelectedGalponProvider>
+                  <OperarioDashboardScreen />
+                </SelectedGalponProvider>
+              ) : (
+                <DashboardScreen />
+              )} />
               <Route path="/produccion" element={<Placeholder title="Producción" />} />
               <Route path="/galpones" element={<Placeholder title="Galpones" />} />
               <Route path="/cortes" element={<Placeholder title="Cortes" />} />
               <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Fincas" /></RoleGuard>} />
               <Route path="/reportes" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Reportes" /></RoleGuard>} />
               <Route path="/alertas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Alertas" /></RoleGuard>} />
+              <Route path="/operario" element={<RoleGuard allowedRoles={['operario']}><SelectedGalponProvider><OperarioDashboardScreen /></SelectedGalponProvider></RoleGuard>}>
+                <Route path="recoleccion" element={<RecoleccionForm />} />
+                <Route path="alimentacion" element={<AlimentacionForm />} />
+                <Route path="mortalidad" element={<MortalidadForm />} />
+                <Route path="clasificacion" element={<ClasificacionForm />} />
+              </Route>
             </Route>
           </Routes>
         </ErrorBoundary>

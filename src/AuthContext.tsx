@@ -9,10 +9,15 @@ export type AuthState =
 
 export interface AuthContextValue {
   auth: AuthState;
+  signOut: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextValue>({ auth: { status: 'loading' } });
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function useAuth(): AuthContextValue {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (ctx === null) {
+    throw new Error('useAuth debe usarse dentro de un AuthContext.Provider');
+  }
+  return ctx;
 }

@@ -1,12 +1,15 @@
+import { lazy, Suspense } from 'react';
 import { Box, Typography, Alert, Skeleton, Grid } from '@mui/material';
 import EggOutlined from '@mui/icons-material/EggOutlined';
 import TrendingUpOutlined from '@mui/icons-material/TrendingUpOutlined';
 import WarningAmberOutlined from '@mui/icons-material/WarningAmberOutlined';
 import RestaurantOutlined from '@mui/icons-material/RestaurantOutlined';
 import KpiCard from '../components/KpiCard';
-import ProductionChart from '../components/ProductionChart';
-import EggClassificationChart from '../components/EggClassificationChart';
-import { useDashboardData } from '../services/DashboardService';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { useDashboardData } from '../hooks/useDashboardData';
+
+const ProductionChart = lazy(() => import('../components/ProductionChart'));
+const EggClassificationChart = lazy(() => import('../components/EggClassificationChart'));
 
 const DashboardScreen = () => {
   const { data, loading, error } = useDashboardData();
@@ -85,14 +88,22 @@ const DashboardScreen = () => {
           {loading ? (
             <Skeleton variant="rounded" height={340} />
           ) : (
-            <ProductionChart data={data?.chart ?? []} />
+            <ErrorBoundary level="section" fallbackMessage="Error al cargar el gráfico de producción.">
+              <Suspense fallback={<Skeleton variant="rounded" height={340} />}>
+                <ProductionChart data={data?.chart ?? []} />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           {loading ? (
             <Skeleton variant="rounded" height={340} />
           ) : (
-            <EggClassificationChart data={data?.classification ?? []} />
+            <ErrorBoundary level="section" fallbackMessage="Error al cargar el gráfico de clasificación.">
+              <Suspense fallback={<Skeleton variant="rounded" height={340} />}>
+                <EggClassificationChart data={data?.classification ?? []} />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </Grid>
       </Grid>

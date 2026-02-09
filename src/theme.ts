@@ -63,6 +63,16 @@ const theme = createTheme({
     borderRadius: 12,
   },
   components: {
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: 20,
+          '&:last-child': {
+            paddingBottom: 20,
+          },
+        },
+      },
+    },
     MuiCard: {
       defaultProps: { elevation: 0 },
       styleOverrides: {
@@ -93,7 +103,7 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none' as const,
+          textTransform: 'none',
           fontWeight: 600,
           borderRadius: 8,
         },

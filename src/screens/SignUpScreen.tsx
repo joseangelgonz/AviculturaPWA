@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Container, Typography, Box, TextField, Button, Alert, Link } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 
 const SignUpScreen = () => {
@@ -11,11 +11,26 @@ const SignUpScreen = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+    if (!/[A-Z]/.test(pwd)) return 'La contraseña debe incluir al menos una letra mayúscula.';
+    if (!/[a-z]/.test(pwd)) return 'La contraseña debe incluir al menos una letra minúscula.';
+    if (!/[0-9]/.test(pwd)) return 'La contraseña debe incluir al menos un número.';
+    return null;
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      setLoading(false);
+      return;
+    }
 
     try {
       await AuthService.signUp(email, password);
@@ -23,8 +38,9 @@ const SignUpScreen = () => {
       setTimeout(() => {
         navigate('/login');
       }, 3000); // Redirect after 3 seconds
-    } catch (err: any) {
-      setError(err.message || 'Error al registrar usuario. Por favor, inténtalo de nuevo.');
+    } catch {
+      // Mensaje genérico para prevenir enumeración de correos electrónicos
+      setError('No se pudo completar el registro. Por favor, inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +105,7 @@ const SignUpScreen = () => {
               {success}
             </Alert>
           )}
-          <Link href="/login" variant="body2">
+          <Link component={RouterLink} to="/login" variant="body2">
             ¿Ya tienes una cuenta? Inicia Sesión
           </Link>
         </Box>

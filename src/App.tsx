@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, Box, CircularProgress, Typography } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -8,8 +8,10 @@ import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import DashboardLayout from './components/DashboardLayout';
+import RoleGuard from './components/RoleGuard';
 import { AuthContext } from './AuthContext';
 import type { AuthState } from './AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // --- Placeholder para rutas futuras ---
 const Placeholder = ({ title }: { title: string }) => (
@@ -21,6 +23,10 @@ const Placeholder = ({ title }: { title: string }) => (
 
 function App() {
   const [auth, setAuth] = useState<AuthState>({ status: 'loading' });
+
+  const signOut = useCallback(async () => {
+    await AuthService.signOut();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,16 +41,24 @@ function App() {
       }
     }
 
-    // Escuchar cambios de autenticación (fires before getSession resolves)
+    // Escuchar cambios de autenticación (fires before getUser resolves)
     const unsubscribe = AuthService.onAuthStateChange((_event, session) => {
       listenerFired = true;
       resolveAuth(session);
     });
 
-    // Obtener sesión inicial — skip if the listener already provided a value
-    AuthService.getSession()
-      .then((session) => {
-        if (!listenerFired) resolveAuth(session);
+    // Verificar usuario con el servidor (getUser valida el token server-side,
+    // a diferencia de getSession que solo lee localStorage)
+    AuthService.getUser()
+      .then(async (user) => {
+        if (listenerFired || cancelled) return;
+        if (!user) {
+          setAuth({ status: 'unauthenticated' });
+          return;
+        }
+        // Token válido — leer sesión local para obtener el objeto Session completo
+        const session = await AuthService.getSession();
+        if (!listenerFired && !cancelled) resolveAuth(session);
       })
       .catch(() => {
         if (!listenerFired && !cancelled) setAuth({ status: 'unauthenticated' });
@@ -55,6 +69,8 @@ function App() {
       unsubscribe();
     };
   }, []);
+
+  const contextValue = useMemo(() => ({ auth, signOut }), [auth, signOut]);
 
   if (auth.status === 'loading') {
     return (
@@ -70,22 +86,24 @@ function App() {
   const isAuthenticated = auth.status === 'authenticated';
 
   return (
-    <AuthContext.Provider value={{ auth }}>
+    <AuthContext.Provider value={contextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Routes>
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginScreen />} />
-          <Route path="/signup" element={isAuthenticated ? <Navigate to="/" /> : <SignUpScreen />} />
-          <Route element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" />}>
-            <Route path="/" element={<DashboardScreen />} />
-            <Route path="/produccion" element={<Placeholder title="Producción" />} />
-            <Route path="/galpones" element={<Placeholder title="Galpones" />} />
-            <Route path="/cortes" element={<Placeholder title="Cortes" />} />
-            <Route path="/fincas" element={<Placeholder title="Fincas" />} />
-            <Route path="/reportes" element={<Placeholder title="Reportes" />} />
-            <Route path="/alertas" element={<Placeholder title="Alertas" />} />
-          </Route>
-        </Routes>
+        <ErrorBoundary level="page">
+          <Routes>
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <LoginScreen />} />
+            <Route path="/signup" element={isAuthenticated ? <Navigate to="/" /> : <SignUpScreen />} />
+            <Route element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" />}>
+              <Route path="/" element={<DashboardScreen />} />
+              <Route path="/produccion" element={<Placeholder title="Producción" />} />
+              <Route path="/galpones" element={<Placeholder title="Galpones" />} />
+              <Route path="/cortes" element={<Placeholder title="Cortes" />} />
+              <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Fincas" /></RoleGuard>} />
+              <Route path="/reportes" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Reportes" /></RoleGuard>} />
+              <Route path="/alertas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Alertas" /></RoleGuard>} />
+            </Route>
+          </Routes>
+        </ErrorBoundary>
       </ThemeProvider>
     </AuthContext.Provider>
   );

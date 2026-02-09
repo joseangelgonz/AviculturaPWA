@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import type { Producto } from '../models/Producto';
 
@@ -57,7 +56,7 @@ function getDaysAgoISO(days: number): string {
 import type { Produccion } from '../models/Produccion';
 
 
-type CorteRow = { id: string; numero_aves: number; galpon_id: string | null; fecha_inicio: string };
+type CorteRow = { id: number; numero_aves: number; galpon_id: number; fecha_inicio: string };
 
 // --- Derivar datos desde 2 consultas ---
 function deriveKpis(
@@ -191,7 +190,7 @@ function deriveAlerts(
   // Sin datos hoy por corte
   const cortesConDatosHoy = new Set(todayRows.map((d) => d.corte_id));
   for (const corte of cortes) {
-    if (!cortesConDatosHoy.has(corte.id)) {
+    if (!cortesConDatosHoy.has(String(corte.id))) {
       alerts.push({
         id: `sin-datos-${corte.id}`,
         severity: 'info',
@@ -202,7 +201,7 @@ function deriveAlerts(
 
   // Mortalidad alta (muertes hoy > 2x promedio diario últimos 7 días)
   for (const corte of cortes) {
-    const corteProdMortality = weekRows.filter((p) => p.corte_id === corte.id && isMortalityProduct(p.producto_codigo));
+    const corteProdMortality = weekRows.filter((p) => p.corte_id === String(corte.id) && isMortalityProduct(p.producto_codigo));
     if (corteProdMortality.length === 0) continue; // No mortality records for this corte in the week
 
     const todayMortality = corteProdMortality
@@ -250,7 +249,7 @@ function deriveAlerts(
   return alerts;
 }
 
-// --- Servicio ---
+/** Datos vacíos por defecto cuando no hay cortes activos. */
 const EMPTY_DASHBOARD: DashboardData = {
   kpis: { todayProduction: null, productionRate: null, weeklyMortality: null, fcr: null },
   chart: [],
@@ -259,6 +258,11 @@ const EMPTY_DASHBOARD: DashboardData = {
 };
 
 const DashboardService = {
+  /**
+   * Obtiene todos los datos del panel de control: KPIs, gráficos, clasificación y alertas.
+   * Consulta cortes activos, producción de los últimos 30 días y productos.
+   * @returns Los datos completos del dashboard o datos vacíos si no hay cortes activos.
+   */
   async fetchDashboardData(): Promise<DashboardData> {
     const today = getTodayRange();
     const sevenDaysAgo = getDaysAgoISO(7);
@@ -274,7 +278,7 @@ const DashboardService = {
       return EMPTY_DASHBOARD;
     }
 
-    const corteIds = cortes.map((c) => c.id);
+    const corteIds = cortes.map((c) => String(c.id));
 
     // 2. Consultar toda la producción de los últimos 30 días
     const { data: produccionData, error: produccionError } = await supabase
@@ -300,7 +304,7 @@ const DashboardService = {
       console.error('Error al obtener productos:', productosError);
       throw new Error('No se pudieron obtener los productos.');
     }
-    const products: Producto[] = productosData;
+    const products = (productosData ?? []) as Producto[];
     const productMap = new Map<number, Producto>(products.map(p => [p.codigo, p]));
 
 
@@ -308,39 +312,12 @@ const DashboardService = {
 
     // 4. Derivar todos los datos desde las consultas
     return {
-      kpis: deriveKpis(cortes as CorteRow[], produccionRows, productMap, today, sevenDaysAgo),
+      kpis: deriveKpis(cortes, produccionRows, productMap, today, sevenDaysAgo),
       chart: deriveChart(produccionRows, productMap),
       classification: deriveClassification(produccionRows, productMap, today),
-      alerts: deriveAlerts(cortes as CorteRow[], produccionRows, productMap, today, sevenDaysAgo),
+      alerts: deriveAlerts(cortes, produccionRows, productMap, today, sevenDaysAgo),
     };
   },
 };
-
-// --- Hook ---
-export interface DashboardState {
-  data: DashboardData | null;
-  loading: boolean;
-  error: Error | null;
-}
-
-export function useDashboardData(): DashboardState {
-  const [state, setState] = useState<DashboardState>({
-    data: null, loading: true, error: null,
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-    DashboardService.fetchDashboardData()
-      .then((data) => {
-        if (!cancelled) setState({ data, loading: false, error: null });
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setState({ data: null, loading: false, error: err instanceof Error ? err : new Error(String(err)) });
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  return state;
-}
 
 export default DashboardService;

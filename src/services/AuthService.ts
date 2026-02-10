@@ -71,7 +71,10 @@ const AuthService = {
       .select('role')
       .eq('id', userId)
       .single();
-    if (error || !data) return 'operario';
+    if (error || !data) {
+      console.warn('No se pudo obtener el rol del usuario, usando "operario" por defecto:', error?.message ?? 'sin perfil');
+      return 'operario';
+    }
     const VALID_ROLES: readonly string[] = ['administrador', 'operario'];
     return VALID_ROLES.includes(data.role) ? (data.role as UserRole) : 'operario';
   },

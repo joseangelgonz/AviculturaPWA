@@ -36,9 +36,9 @@ const OPERARIO_ONLY: readonly UserRole[] = ['operario'];
 
 const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Panel', path: '/', Icon: DashboardOutlined, roles: ALL_ROLES },
-  { label: 'Producción', path: '/produccion', Icon: EggOutlined, roles: ALL_ROLES },
-  { label: 'Galpones', path: '/galpones', Icon: WarehouseOutlined, roles: ALL_ROLES },
-  { label: 'Cortes', path: '/cortes', Icon: AgricultureOutlined, roles: ALL_ROLES },
+  { label: 'Producción', path: '/produccion', Icon: EggOutlined, roles: ADMIN_ONLY },
+  { label: 'Galpones', path: '/galpones', Icon: WarehouseOutlined, roles: ADMIN_ONLY },
+  { label: 'Cortes', path: '/cortes', Icon: AgricultureOutlined, roles: ADMIN_ONLY },
   { label: 'Fincas', path: '/fincas', Icon: BusinessOutlined, roles: ADMIN_ONLY },
   { label: 'Reportes', path: '/reportes', Icon: AssessmentOutlined, roles: ADMIN_ONLY },
   { label: 'Alertas', path: '/alertas', Icon: NotificationsOutlined, roles: ADMIN_ONLY },

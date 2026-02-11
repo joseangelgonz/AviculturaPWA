@@ -159,19 +159,10 @@ const ClasificacionForm = () => {
       setEntries([{ id: 1, producto_codigo: '', cantidad: '' }]); // Reset form
       setNextEntryId(2);
       setHasDailyClasificacion(true); // Disable form after successful submission
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al registrar clasificación:', err);
-      // Log more details from the Supabase error if available
-      if (err && err.message) {
-        console.error('Supabase Error Message:', err.message);
-      }
-      if (err && err.details) {
-        console.error('Supabase Error Details:', err.details);
-      }
-      if (err && err.code) {
-        console.error('Supabase Error Code:', err.code);
-      }
-      setMessage({ type: 'error', text: `Error al registrar clasificación: ${err.message || 'Intenta de nuevo.'}` });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar clasificación: ${errorMsg}` });
     } finally {
       setLoading(false);
     }

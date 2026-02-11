@@ -69,19 +69,10 @@ const MortalidadForm = () => {
       setMessage({ type: 'success', text: 'Mortalidad registrada exitosamente.' });
       setCausaMortalidadCodigo('');
       setNumeroAvesMuertas('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al registrar mortalidad:', err);
-      // Log more details from the Supabase error if available
-      if (err && err.message) {
-        console.error('Supabase Error Message:', err.message);
-      }
-      if (err && err.details) {
-        console.error('Supabase Error Details:', err.details);
-      }
-      if (err && err.code) {
-        console.error('Supabase Error Code:', err.code);
-      }
-      setMessage({ type: 'error', text: `Error al registrar mortalidad: ${err.message || 'Intenta de nuevo.'}` });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar mortalidad: ${errorMsg}` });
     } finally {
       setLoading(false);
     }

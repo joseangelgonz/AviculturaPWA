@@ -4,7 +4,6 @@ import {
   Typography,
   TextField,
   Button,
-  MenuItem,
   CircularProgress,
   Alert,
   Paper,
@@ -85,19 +84,10 @@ const RecoleccionForm = () => {
       // Y también vuelve a obtener el total de huevos recolectados
       const newTotalHuevos = await RecoleccionService.getTotalHuevosRecoletados(selectedGalpon.id, fechaActual);
       setTotalHuevosRecoletados(newTotalHuevos);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al registrar recolección:', err);
-      // Log more details from the Supabase error if available
-      if (err && err.message) {
-        console.error('Supabase Error Message:', err.message);
-      }
-      if (err && err.details) {
-        console.error('Supabase Error Details:', err.details);
-      }
-      if (err && err.code) {
-        console.error('Supabase Error Code:', err.code);
-      }
-      setMessage({ type: 'error', text: `Error al registrar recolección: ${err.message || 'Intenta de nuevo.'}` });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar recolección: ${errorMsg}` });
     } finally {
       setLoading(false);
     }

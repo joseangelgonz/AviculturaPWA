@@ -6,27 +6,30 @@ import {
   ListItemText,
   Divider,
   Typography,
+  Chip,
 } from '@mui/material';
-import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
-import EggOutlined from '@mui/icons-material/EggOutlined';
-import WarehouseOutlined from '@mui/icons-material/WarehouseOutlined';
-import AgricultureOutlined from '@mui/icons-material/AgricultureOutlined';
-import BusinessOutlined from '@mui/icons-material/BusinessOutlined';
-import AssessmentOutlined from '@mui/icons-material/AssessmentOutlined';
-import NotificationsOutlined from '@mui/icons-material/NotificationsOutlined';
-import TakeoutDiningOutlined from '@mui/icons-material/TakeoutDiningOutlined';
-import EggAltOutlined from '@mui/icons-material/EggAltOutlined';
-import BloodtypeOutlined from '@mui/icons-material/BloodtypeOutlined';
-import CategoryOutlined from '@mui/icons-material/CategoryOutlined';
+import {
+  LayoutDashboard,
+  Egg,
+  Warehouse,
+  Layers,
+  Landmark,
+  BarChart3,
+  BellRing,
+  Package,
+  Wheat,
+  HeartCrack,
+  Tags,
+  type LucideIcon,
+} from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import type { UserRole } from '../models/Usuario';
-import type { SvgIconComponent } from '@mui/icons-material';
 
 interface NavItem {
   label: string;
   path: string;
-  Icon: SvgIconComponent;
+  Icon: LucideIcon;
   roles: readonly UserRole[];
 }
 
@@ -35,17 +38,17 @@ const ADMIN_ONLY: readonly UserRole[] = ['administrador'];
 const OPERARIO_ONLY: readonly UserRole[] = ['operario'];
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { label: 'Panel', path: '/', Icon: DashboardOutlined, roles: ALL_ROLES },
-  { label: 'Producción', path: '/produccion', Icon: EggOutlined, roles: ADMIN_ONLY },
-  { label: 'Galpones', path: '/galpones', Icon: WarehouseOutlined, roles: ADMIN_ONLY },
-  { label: 'Cortes', path: '/cortes', Icon: AgricultureOutlined, roles: ADMIN_ONLY },
-  { label: 'Fincas', path: '/fincas', Icon: BusinessOutlined, roles: ADMIN_ONLY },
-  { label: 'Reportes', path: '/reportes', Icon: AssessmentOutlined, roles: ADMIN_ONLY },
-  { label: 'Alertas', path: '/alertas', Icon: NotificationsOutlined, roles: ADMIN_ONLY },
-  { label: 'Recolección', path: '/operario/recoleccion', Icon: EggAltOutlined, roles: OPERARIO_ONLY },
-  { label: 'Alimentación', path: '/operario/alimentacion', Icon: TakeoutDiningOutlined, roles: OPERARIO_ONLY },
-  { label: 'Mortalidad', path: '/operario/mortalidad', Icon: BloodtypeOutlined, roles: OPERARIO_ONLY },
-  { label: 'Clasificación', path: '/operario/clasificacion', Icon: CategoryOutlined, roles: OPERARIO_ONLY },
+  { label: 'Panel', path: '/', Icon: LayoutDashboard, roles: ALL_ROLES },
+  { label: 'Producción', path: '/produccion', Icon: Egg, roles: ADMIN_ONLY },
+  { label: 'Galpones', path: '/galpones', Icon: Warehouse, roles: ADMIN_ONLY },
+  { label: 'Cortes', path: '/cortes', Icon: Layers, roles: ADMIN_ONLY },
+  { label: 'Fincas', path: '/fincas', Icon: Landmark, roles: ADMIN_ONLY },
+  { label: 'Reportes', path: '/reportes', Icon: BarChart3, roles: ADMIN_ONLY },
+  { label: 'Alertas', path: '/alertas', Icon: BellRing, roles: ADMIN_ONLY },
+  { label: 'Recolección', path: '/operario/recoleccion', Icon: Package, roles: OPERARIO_ONLY },
+  { label: 'Alimentación', path: '/operario/alimentacion', Icon: Wheat, roles: OPERARIO_ONLY },
+  { label: 'Mortalidad', path: '/operario/mortalidad', Icon: HeartCrack, roles: OPERARIO_ONLY },
+  { label: 'Clasificación', path: '/operario/clasificacion', Icon: Tags, roles: OPERARIO_ONLY },
 ];
 
 interface SidebarProps {
@@ -70,54 +73,122 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', py: 1 }}>
-      <Box sx={{ px: 2.5, py: 1.5 }}>
-        <Typography
-          variant="h6"
+    <Box className="premium-fade-up premium-delay-1" sx={{ display: 'flex', flexDirection: 'column', height: '100%', py: 1.25 }}>
+      <Box sx={{ px: 2.25, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+        <Box
           sx={{
+            width: 28,
+            height: 28,
+            borderRadius: '8px',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            display: 'grid',
+            placeItems: 'center',
             fontWeight: 700,
-            fontSize: '1.1rem',
-            color: 'text.primary',
+            fontSize: '0.8rem',
             letterSpacing: '-0.01em',
           }}
         >
-          AviculturaPWA
-        </Typography>
+          A
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              fontSize: '1rem',
+              color: 'text.primary',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.1,
+            }}
+          >
+            Avicultura
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+            Control Center
+          </Typography>
+        </Box>
       </Box>
 
-      <Divider sx={{ mx: 2, my: 1 }} />
+      <Divider sx={{ mx: 1.75, my: 1 }} />
 
       <List sx={{ flex: 1, px: 1 }}>
+        <Typography
+          variant="body2"
+          sx={{
+            px: 1.5,
+            pt: 0.5,
+            pb: 0.75,
+            color: 'text.secondary',
+            textTransform: 'uppercase',
+            fontSize: '0.69rem',
+            letterSpacing: '0.08em',
+            fontWeight: 700,
+          }}
+        >
+          Navegación
+        </Typography>
         {visibleItems.map((item) => {
-          const selected = location.pathname === item.path;
+          const selected = item.path === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(item.path);
+
           return (
             <ListItemButton
               key={item.path}
               selected={selected}
               onClick={() => handleClick(item.path)}
-              sx={{ minHeight: 44, px: 2, mb: 0.5 }}
+              sx={{ minHeight: 42, px: 1.5, mb: 0.5 }}
             >
               <ListItemIcon
                 sx={{
-                  minWidth: 0,
-                  mr: 2,
+                  mr: 1.2,
                   justifyContent: 'center',
                   color: selected ? 'primary.main' : 'text.secondary',
                 }}
               >
-                <item.Icon />
+                <item.Icon size={18} strokeWidth={1.85} aria-hidden />
               </ListItemIcon>
               <ListItemText
                 primary={item.label}
                 primaryTypographyProps={{
-                  fontSize: '0.875rem',
-                  fontWeight: selected ? 600 : 400,
+                  fontSize: '0.84rem',
+                  fontWeight: selected ? 650 : 500,
                 }}
               />
+              {selected && (
+                <Chip
+                  size="small"
+                  label=""
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    bgcolor: 'primary.main',
+                    '& .MuiChip-label': { px: 0 },
+                  }}
+                />
+              )}
             </ListItemButton>
           );
         })}
       </List>
+
+      <Box sx={{ px: 2, pb: 1.25 }}>
+        <Divider sx={{ mb: 1.25 }} />
+        <Chip
+          size="small"
+          label={userRole === 'administrador' ? 'Acceso completo' : 'Acceso operativo'}
+          variant="outlined"
+          sx={{
+            borderColor: 'divider',
+            color: 'text.secondary',
+            bgcolor: 'rgba(255,255,255,0.32)',
+            width: '100%',
+            justifyContent: 'flex-start',
+            '& .MuiChip-label': { px: 1 },
+          }}
+        />
+      </Box>
     </Box>
   );
 };

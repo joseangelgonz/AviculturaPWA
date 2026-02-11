@@ -34,7 +34,8 @@ const ProductionChart = memo(({ data }: ProductionChartProps) => {
           showMark: false,
         }]}
         height={280}
-        margin={{ left: 60, right: 20, top: 20, bottom: 30 }}
+        grid={{ horizontal: true }}
+        margin={{ left: 56, right: 16, top: 16, bottom: 30 }}
         hideLegend
       />
     </ChartCard>

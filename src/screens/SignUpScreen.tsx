@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Container, Typography, Box, TextField, Button, Alert, Link } from '@mui/material';
+import { Typography, Box, TextField, Button, Alert, Link, Paper } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 
@@ -47,70 +47,75 @@ const SignUpScreen = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Typography component="h1" variant="h5">
-          Registrarse
+    <Box
+      className="premium-fade-up"
+      sx={{
+        minHeight: '100vh',
+        display: 'grid',
+        placeItems: 'center',
+        p: { xs: 2, sm: 3, md: 5 },
+      }}
+    >
+      <Paper sx={{ width: '100%', maxWidth: 420, p: { xs: 2.2, sm: 3 } }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+          Crear cuenta
         </Typography>
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.25 }}>
+          Configura acceso para gestionar la operacion con permisos seguros.
+        </Typography>
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
           <TextField
-            margin="normal"
             required
             fullWidth
             id="email"
-            label="Correo Electrónico"
+            label="Correo electronico"
             name="email"
             autoComplete="email"
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
+            sx={{ mb: 1.2 }}
           />
           <TextField
-            margin="normal"
             required
             fullWidth
             name="password"
-            label="Contraseña"
+            label="Contrasena"
             type="password"
             id="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
+            sx={{ mb: 1.4 }}
           />
           <Button
             type="submit"
             fullWidth
             variant="contained"
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ mb: 1.6 }}
             disabled={loading}
           >
-            {loading ? 'Registrando...' : 'Registrarse'}
+            {loading ? 'Creando cuenta...' : 'Registrarse'}
           </Button>
           {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
+            <Alert severity="error" sx={{ mb: 1.2 }}>
               {error}
             </Alert>
           )}
           {success && (
-            <Alert severity="success" sx={{ mt: 2 }}>
+            <Alert severity="success" sx={{ mb: 1.2 }}>
               {success}
             </Alert>
           )}
           <Link component={RouterLink} to="/login" variant="body2">
-            ¿Ya tienes una cuenta? Inicia Sesión
+            Ya tienes una cuenta? Inicia sesion
           </Link>
         </Box>
-      </Box>
-    </Container>
+      </Paper>
+    </Box>
   );
 };
 

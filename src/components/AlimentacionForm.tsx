@@ -68,9 +68,10 @@ const AlimentacionForm = () => {
       setMessage({ type: 'success', text: 'Alimentación registrada exitosamente.' });
       setProductoAlimentoCodigo('');
       setCantidadBultos('');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error al registrar alimentación:', err);
-      setMessage({ type: 'error', text: 'Error al registrar alimentación. Intenta de nuevo.' });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar alimentación: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
@@ -108,6 +109,7 @@ const AlimentacionForm = () => {
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <TextField
           select
+          id="tipo-alimento"
           label="Tipo de Alimento"
           value={productoAlimentoCodigo}
           onChange={(e) => setProductoAlimentoCodigo(Number(e.target.value))}
@@ -122,6 +124,7 @@ const AlimentacionForm = () => {
           ))}
         </TextField>
         <TextField
+          id="cantidad-bultos"
           label="Cantidad de Bultos"
           type="number"
           value={cantidadBultos}
@@ -143,7 +146,7 @@ const AlimentacionForm = () => {
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
+          startIcon={loading ? <CircularProgress size={20} /> : <span />}
         >
           {loading ? 'Registrando...' : 'Registrar Alimentación'}
         </Button>

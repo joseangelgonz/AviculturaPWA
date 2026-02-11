@@ -69,9 +69,10 @@ const MortalidadForm = () => {
       setMessage({ type: 'success', text: 'Mortalidad registrada exitosamente.' });
       setCausaMortalidadCodigo('');
       setNumeroAvesMuertas('');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error al registrar mortalidad:', err);
-      setMessage({ type: 'error', text: 'Error al registrar mortalidad. Intenta de nuevo.' });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar mortalidad: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
@@ -109,6 +110,7 @@ const MortalidadForm = () => {
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <TextField
           select
+          id="causa-mortalidad"
           label="Causa de Mortalidad"
           value={causaMortalidadCodigo}
           onChange={(e) => setCausaMortalidadCodigo(e.target.value)}
@@ -123,6 +125,7 @@ const MortalidadForm = () => {
           ))}
         </TextField>
         <TextField
+          id="numero-aves-muertas"
           label="Número de Aves Muertas"
           type="number"
           value={numeroAvesMuertas}
@@ -144,7 +147,7 @@ const MortalidadForm = () => {
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
+          startIcon={loading ? <CircularProgress size={20} /> : <span />}
         >
           {loading ? 'Registrando...' : 'Registrar Mortalidad'}
         </Button>

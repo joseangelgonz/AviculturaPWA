@@ -34,6 +34,8 @@ const ClasificacionForm = () => {
   const [errorProductos, setErrorProductos] = useState<Error | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [nextEntryId, setNextEntryId] = useState(2);
+  const [hasDailyClasificacion, setHasDailyClasificacion] = useState(false);
+  const [loadingDailyCheck, setLoadingDailyCheck] = useState(true);
 
   useEffect(() => {
     const fetchProductos = async () => {
@@ -53,6 +55,32 @@ const ClasificacionForm = () => {
     fetchProductos();
   }, []);
 
+  useEffect(() => {
+    const checkExistingClasificacion = async () => {
+      if (selectedGalpon) {
+        setLoadingDailyCheck(true);
+        try {
+          const fechaActual = dayjs().format('YYYY-MM-DD');
+          const exists = await ProduccionService.checkDailyClasificacionExists(
+            selectedGalpon.id,
+            fechaActual
+          );
+          setHasDailyClasificacion(exists);
+        } catch (err) {
+          console.error('Error al verificar clasificación diaria existente:', err);
+          setMessage({ type: 'error', text: 'Error al verificar clasificación diaria. Recarga la página.' });
+        } finally {
+          setLoadingDailyCheck(false);
+        }
+      } else {
+        setHasDailyClasificacion(false);
+        setLoadingDailyCheck(false);
+      }
+    };
+
+    checkExistingClasificacion();
+  }, [selectedGalpon]); // Re-run when selectedGalpon changes
+
   const handleAddEntry = () => {
     setEntries((prevEntries) => [
       ...prevEntries,
@@ -66,11 +94,25 @@ const ClasificacionForm = () => {
   };
 
   const handleChangeEntry = (id: number, field: keyof ClasificacionEntry, value: string | number) => {
-    setEntries((prevEntries) =>
-      prevEntries.map((entry) =>
+    setEntries((prevEntries) => {
+      if (field === 'producto_codigo' && value !== '') {
+        const isDuplicate = prevEntries.some(
+          (entry) => entry.id !== id && entry.producto_codigo === value
+        );
+        if (isDuplicate) {
+          setMessage({ type: 'error', text: 'Este tipo de huevo ya ha sido seleccionado en otra línea.' });
+          // Optionally, do not update the producto_codigo for the current entry,
+          // keeping its previous valid value or setting it to ''
+          return prevEntries; // Prevent state update if duplicate
+        } else {
+          setMessage(null); // Clear message if it was a duplicate error
+        }
+      }
+
+      return prevEntries.map((entry) =>
         entry.id === id ? { ...entry, [field]: value } : entry
-      )
-    );
+      );
+    });
   };
 
   const totalCantidadHuevos = useMemo(() => {
@@ -116,19 +158,30 @@ const ClasificacionForm = () => {
       setMessage({ type: 'success', text: 'Clasificación registrada exitosamente.' });
       setEntries([{ id: 1, producto_codigo: '', cantidad: '' }]); // Reset form
       setNextEntryId(2);
-    } catch (err) {
+      setHasDailyClasificacion(true); // Disable form after successful submission
+    } catch (err: unknown) {
       console.error('Error al registrar clasificación:', err);
-      setMessage({ type: 'error', text: 'Error al registrar clasificación. Intenta de nuevo.' });
+      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
+      setMessage({ type: 'error', text: `Error al registrar clasificación: ${errorMsg}` });
     } finally {
       setLoading(false);
     }
   };
 
-  if (loadingGalpones || loadingProductos) {
+  if (loadingGalpones || loadingProductos || loadingDailyCheck) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="200px">
         <CircularProgress />
       </Box>
+    );
+  }
+
+  if (hasDailyClasificacion) {
+    return (
+      <Alert severity="info" sx={{ mt: 2 }}>
+        Ya existe un registro de clasificación para el galpón {selectedGalpon?.nombre} para la fecha actual.
+        Solo se permite un registro por día.
+      </Alert>
     );
   }
 
@@ -160,6 +213,7 @@ const ClasificacionForm = () => {
               <Grid size={6}>
                 <TextField
                   select
+                  id={`tipo-huevo-${entry.id}`}
                   label="Tipo de Huevo"
                   value={entry.producto_codigo}
                   onChange={(e) => handleChangeEntry(entry.id, 'producto_codigo', Number(e.target.value))}
@@ -175,6 +229,7 @@ const ClasificacionForm = () => {
               </Grid>
               <Grid size={4}>
                 <TextField
+                  id={`cantidad-${entry.id}`}
                   label="Cantidad"
                   type="number"
                   value={entry.cantidad}
@@ -204,8 +259,8 @@ const ClasificacionForm = () => {
           Añadir Línea
         </Button>
 
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-          Total de Huevos: {totalCantidadHuevos}
+        <Typography variant="h6" sx={{ mt: 3, mb: 2 }} key={totalCantidadHuevos}>
+          Total de Huevos: <span>{totalCantidadHuevos}</span>
         </Typography>
 
         {message && (
@@ -220,7 +275,7 @@ const ClasificacionForm = () => {
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
+          startIcon={loading ? <CircularProgress size={20} /> : <span />}
         >
           {loading ? 'Registrando...' : 'Registrar Clasificación'}
         </Button>

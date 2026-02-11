@@ -63,6 +63,27 @@ const ProduccionService = {
     }
     return 1; // Si no hay registros, empieza con 1
   },
+
+  /**
+   * Verifica si ya existen registros de clasificación para un galpón y fecha dados.
+   * @param galpon_id El ID del galpón.
+   * @param fecha La fecha (YYYY-MM-DD).
+   * @returns Una promesa que resuelve con `true` si existen registros, `false` en caso contrario.
+   */
+  async checkDailyClasificacionExists(galpon_id: number, fecha: string): Promise<boolean> {
+    const { count, error } = await supabase
+      .from('produccion')
+      .select('*', { count: 'exact' }) // Select count of id column
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha);
+
+    if (error) {
+      console.error('Error al verificar clasificaciones diarias existentes:', error);
+      throw error;
+    }
+
+    return (count || 0) > 0;
+  },
 };
 
 export default ProduccionService;

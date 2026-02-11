@@ -69,9 +69,19 @@ const MortalidadForm = () => {
       setMessage({ type: 'success', text: 'Mortalidad registrada exitosamente.' });
       setCausaMortalidadCodigo('');
       setNumeroAvesMuertas('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al registrar mortalidad:', err);
-      setMessage({ type: 'error', text: 'Error al registrar mortalidad. Intenta de nuevo.' });
+      // Log more details from the Supabase error if available
+      if (err && err.message) {
+        console.error('Supabase Error Message:', err.message);
+      }
+      if (err && err.details) {
+        console.error('Supabase Error Details:', err.details);
+      }
+      if (err && err.code) {
+        console.error('Supabase Error Code:', err.code);
+      }
+      setMessage({ type: 'error', text: `Error al registrar mortalidad: ${err.message || 'Intenta de nuevo.'}` });
     } finally {
       setLoading(false);
     }
@@ -109,6 +119,7 @@ const MortalidadForm = () => {
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <TextField
           select
+          id="causa-mortalidad"
           label="Causa de Mortalidad"
           value={causaMortalidadCodigo}
           onChange={(e) => setCausaMortalidadCodigo(e.target.value)}
@@ -123,6 +134,7 @@ const MortalidadForm = () => {
           ))}
         </TextField>
         <TextField
+          id="numero-aves-muertas"
           label="Número de Aves Muertas"
           type="number"
           value={numeroAvesMuertas}
@@ -144,7 +156,7 @@ const MortalidadForm = () => {
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
+          startIcon={loading ? <CircularProgress size={20} /> : <span />}
         >
           {loading ? 'Registrando...' : 'Registrar Mortalidad'}
         </Button>

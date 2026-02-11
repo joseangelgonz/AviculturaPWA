@@ -34,7 +34,57 @@ const RecoleccionService = {
     return data;
   },
 
-  // No se implementan métodos de actualización o eliminación para enforcing inmutabilidad.
+  /**
+   * Obtiene el siguiente número de secuencia disponible para una recolección
+   * en un galpón y fecha dados.
+   * @param galpon_id El ID del galpón.
+   * @param fecha La fecha (YYYY-MM-DD).
+   * @returns El siguiente número de secuencia o 1 si no hay registros existentes para ese día.
+   */
+  async getNextNumeroSecuencia(galpon_id: number, fecha: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('recoleccion_huevos')
+      .select('numero_secuencia')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha)
+      .order('numero_secuencia', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error al obtener el siguiente número de secuencia de recolección:', error);
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      return (data[0].numero_secuencia as number) + 1;
+    }
+    return 1; // Si no hay registros, empieza con 1
+  },
+
+  /**
+   * Obtiene la cantidad total de huevos recolectados para un galpón y fecha dados.
+   * @param galpon_id El ID del galpón.
+   * @param fecha La fecha (YYYY-MM-DD).
+   * @returns Una promesa que resuelve con la cantidad total de huevos o 0 si no hay registros.
+   */
+  async getTotalHuevosRecoletados(galpon_id: number, fecha: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('recoleccion_huevos')
+      .select('cantidad_huevos')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha);
+
+    if (error) {
+      console.error('Error al obtener el total de huevos recolectados:', error);
+      throw error;
+    }
+
+    if (data) {
+      const total = data.reduce((sum, entry) => sum + (entry.cantidad_huevos || 0), 0);
+      return total;
+    }
+    return 0; // Si no hay registros, el total es 0
+  },
 };
 
 export default RecoleccionService;

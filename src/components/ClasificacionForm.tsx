@@ -11,8 +11,7 @@ import {
   IconButton,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Plus, Trash2 } from 'lucide-react';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
 import ProduccionService from '../services/ProduccionService';
 import ProductoService from '../services/ProductoService';
@@ -198,7 +197,7 @@ const ClasificacionForm = () => {
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 3, maxWidth: 800, mx: 'auto', mt: 3 }}>
+    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 860, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
       <Typography variant="h6" gutterBottom>
         Registrar Clasificación de Huevos
       </Typography>
@@ -242,7 +241,7 @@ const ClasificacionForm = () => {
               <Grid size={2}>
                 {entries.length > 1 && (
                   <IconButton onClick={() => handleDeleteEntry(entry.id)} color="error">
-                    <DeleteIcon />
+                    <Trash2 size={20} strokeWidth={1.75} aria-hidden />
                   </IconButton>
                 )}
               </Grid>
@@ -251,7 +250,7 @@ const ClasificacionForm = () => {
         </Grid>
 
         <Button
-          startIcon={<AddIcon />}
+          startIcon={<Plus size={20} strokeWidth={1.75} aria-hidden />}
           onClick={handleAddEntry}
           variant="outlined"
           sx={{ mt: 2 }}

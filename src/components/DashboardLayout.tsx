@@ -7,23 +7,45 @@ import {
   IconButton,
   Typography,
   Button,
+  Chip,
+  Stack,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
-import { Outlet } from 'react-router-dom';
+import { Menu, LogOut } from 'lucide-react';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../AuthContext';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 272;
+
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Panel',
+  '/produccion': 'Produccion',
+  '/galpones': 'Galpones',
+  '/cortes': 'Cortes',
+  '/fincas': 'Fincas',
+  '/reportes': 'Reportes',
+  '/alertas': 'Alertas',
+  '/operario': 'Panel Operario',
+  '/operario/recoleccion': 'Registro de Recoleccion',
+  '/operario/alimentacion': 'Registro de Alimentacion',
+  '/operario/mortalidad': 'Registro de Mortalidad',
+  '/operario/clasificacion': 'Registro de Clasificacion',
+};
 
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const location = useLocation();
   const { auth, signOut } = useAuth();
 
   const userEmail =
     auth.status === 'authenticated' ? auth.session.user.email : '';
+  const roleLabel =
+    auth.status === 'authenticated' && auth.role === 'administrador'
+      ? 'Admin'
+      : 'Operario';
+  const pageTitle = PAGE_TITLES[location.pathname] ?? 'Avicultura';
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -38,27 +60,27 @@ const DashboardLayout = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* AppBar */}
+    <Box sx={{ display: 'flex', minHeight: '100vh', overflowX: 'hidden' }}>
       <AppBar
         position="fixed"
         sx={{
           width: { md: isSidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           ml: { md: isSidebarOpen ? `${DRAWER_WIDTH}px` : '0px' },
+          boxShadow: 'none',
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {
               easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
+              duration: theme.transitions.duration.standard,
             }),
         }}
       >
-        <Toolbar sx={{ minHeight: 56 }}>
+        <Toolbar sx={{ minHeight: 60, px: { xs: 1.5, sm: 2.5 } }}>
           <IconButton
             edge="start"
             onClick={() => setMobileOpen(true)}
             sx={{ mr: 2, display: { md: 'none' }, color: 'text.primary' }}
           >
-            <MenuIcon />
+            <Menu size={24} strokeWidth={1.75} aria-hidden />
           </IconButton>
           <IconButton
             color="inherit"
@@ -67,31 +89,59 @@ const DashboardLayout = () => {
             edge="start"
             sx={{ mr: 2, display: { xs: 'none', md: 'block' }, color: 'text.primary' }}
           >
-            <MenuIcon />
+            <Menu size={24} strokeWidth={1.75} aria-hidden />
           </IconButton>
           <Typography
             variant="h6"
             noWrap
-            sx={{ flexGrow: 1, fontSize: '1rem', fontWeight: 600 }}
+            sx={{ flexGrow: 1, fontSize: '0.86rem', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'text.secondary' }}
           >
-            AviculturaPWA
+            {pageTitle}
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mr: 2 }}>
-            {userEmail}
-          </Typography>
-          <Button
-            size="small"
-            startIcon={<LogoutOutlined />}
-            onClick={handleSignOut}
-            disabled={signingOut}
-            sx={{ color: 'text.secondary' }}
-          >
-            {signingOut ? 'Cerrando...' : 'Salir'}
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip
+              label={roleLabel}
+              size="small"
+              sx={{
+                display: { xs: 'none', sm: 'inline-flex' },
+                bgcolor: 'rgba(75, 90, 40, 0.1)',
+                color: 'primary.dark',
+                border: 'none',
+                fontWeight: 700,
+              }}
+            />
+            {userEmail && (
+              <Chip
+                label={userEmail}
+                size="small"
+                variant="outlined"
+                sx={{
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  maxWidth: 220,
+                  borderColor: 'divider',
+                  color: 'text.secondary',
+                  '& .MuiChip-label': {
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  },
+                }}
+              />
+            )}
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<LogOut size={18} strokeWidth={1.75} aria-hidden />}
+              onClick={handleSignOut}
+              disabled={signingOut}
+              sx={{ color: 'text.primary' }}
+            >
+              {signingOut ? 'Cerrando...' : 'Salir'}
+            </Button>
+          </Stack>
         </Toolbar>
       </AppBar>
 
-      {/* Sidebar: temporal en móvil */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -105,7 +155,6 @@ const DashboardLayout = () => {
         <Sidebar onNavigate={() => setMobileOpen(false)} />
       </Drawer>
 
-      {/* Sidebar: permanente en escritorio */}
       <Drawer
         variant="permanent"
         open
@@ -117,7 +166,7 @@ const DashboardLayout = () => {
             transition: (theme) =>
               theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
+                duration: theme.transitions.duration.standard,
               }),
           },
         }}
@@ -125,22 +174,22 @@ const DashboardLayout = () => {
         {isSidebarOpen && <Sidebar />}
       </Drawer>
 
-      {/* Contenido principal */}
       <Box
         component="main"
+        className="premium-fade-up"
         sx={{
           flexGrow: 1,
           width: { md: isSidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
           ml: { md: isSidebarOpen ? `${DRAWER_WIDTH}px` : '0px' },
-          pt: '56px',
+          pt: '60px',
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {
               easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
+              duration: theme.transitions.duration.standard,
             }),
         }}
       >
-        <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: 'auto' }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2.25 }, maxWidth: 1440, mx: 'auto' }}>
           <Outlet />
         </Box>
       </Box>

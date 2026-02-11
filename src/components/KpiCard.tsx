@@ -17,7 +17,7 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%' }}>
+      <Card sx={{ height: '100%', borderRadius: 3 }}>
         <CardContent>
           <Skeleton variant="text" width="60%" />
           <Skeleton variant="text" width="40%" height={48} />
@@ -28,26 +28,51 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
   }
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card
+      className="premium-fade-up premium-delay-1"
+      sx={{
+        height: '100%',
+        borderRadius: 3,
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          borderColor: '#D1C8B8',
+          boxShadow: '0 1px 0 rgba(29, 31, 26, 0.05), 0 16px 30px rgba(29, 31, 26, 0.05)',
+        },
+      }}
+    >
       <CardContent>
-        {/* Etiqueta + icono */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
           <Typography
             variant="h6"
             component="span"
-            sx={{ color: 'text.secondary', textTransform: 'uppercase', fontSize: '0.75rem' }}
+            sx={{
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              fontSize: '0.69rem',
+              letterSpacing: '0.08em',
+              fontWeight: 700,
+            }}
           >
             {label}
           </Typography>
           {icon && (
-            <Box sx={{ color: 'text.disabled', display: 'flex' }}>
+            <Box
+              sx={{
+                color: 'primary.main',
+                display: 'grid',
+                placeItems: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: '9px',
+                bgcolor: 'rgba(75, 90, 40, 0.09)',
+              }}
+            >
               {icon}
             </Box>
           )}
         </Box>
 
-        {/* Valor grande */}
-        <Typography variant="h3" component="div" sx={{ mb: 0.5 }}>
+        <Typography variant="h3" component="div" sx={{ mb: 0.25, fontSize: '1.95rem' }}>
           {formattedValue}
           {unit && value != null && (
             <Typography

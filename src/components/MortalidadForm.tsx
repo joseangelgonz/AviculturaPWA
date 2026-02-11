@@ -99,7 +99,7 @@ const MortalidadForm = () => {
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 3 }}>
+    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
       <Typography variant="h6" gutterBottom>
         Registrar Mortalidad Diaria
       </Typography>

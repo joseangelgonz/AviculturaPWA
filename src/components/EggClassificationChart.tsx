@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
 import { useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { PieChart } from '@mui/x-charts/PieChart';
 import ChartCard from './ChartCard';
 import type { EggClassificationBreakdown } from '../services/DashboardService';
@@ -9,10 +10,19 @@ interface EggClassificationChartProps {
 }
 
 const EggClassificationChart = memo(({ data }: EggClassificationChartProps) => {
-  const { palette } = useTheme();
+  const theme = useTheme();
+  const { palette } = theme;
 
   const pieData = useMemo(() => {
-    const colors = [palette.primary.main, palette.secondary.main, palette.primary.light, palette.primary.dark, palette.success.main, palette.warning.main, palette.error.main];
+    const colors = [
+      palette.primary.main,
+      palette.primary.light,
+      palette.primary.dark,
+      alpha(palette.primary.main, 0.72),
+      alpha(palette.primary.main, 0.54),
+      '#AFA595',
+      '#CDC3B3',
+    ];
     return data.map((item, i) => ({
       id: i,
       value: item.count,
@@ -36,7 +46,7 @@ const EggClassificationChart = memo(({ data }: EggClassificationChartProps) => {
           cornerRadius: 4,
         }]}
         height={280}
-        margin={{ left: 0, right: 120, top: 0, bottom: 0 }}
+        margin={{ left: 0, right: 80, top: 0, bottom: 0 }}
       />
     </ChartCard>
   );

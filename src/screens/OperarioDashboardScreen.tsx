@@ -77,7 +77,7 @@ const OperarioDashboardScreen = () => {
                         sx={{
                           width: 28,
                           height: 28,
-                          borderRadius: '9px',
+                          borderRadius: 'var(--ds-radius-sm, 6px)',
                           display: 'grid',
                           placeItems: 'center',
                           bgcolor: 'rgba(75, 90, 40, 0.1)',

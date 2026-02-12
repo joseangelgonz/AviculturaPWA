@@ -14,10 +14,10 @@ This design system is intentionally simple: one brand accent, warm neutrals, and
 Defined in `/Users/sebastiangr/AviculturaPWA/src/theme.ts` and exposed as CSS vars in `MuiCssBaseline`.
 
 - Spacing scale: `4 / 8 / 12 / 16 / 24 / 32` px
-- Radius scale:
-- `--ds-radius-sm`: `8px`
-- `--ds-radius-md`: `10px`
-- `--ds-radius-lg`: `14px`
+- Radius scale (reduced for better fit at full width, avoids overflow):
+- `--ds-radius-sm`: `6px`
+- `--ds-radius-md`: `8px`
+- `--ds-radius-lg`: `10px`
 
 ## 3) Action Tokens
 

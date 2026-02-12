@@ -52,10 +52,11 @@ const NAV_ITEMS: readonly NavItem[] = [
 ];
 
 interface SidebarProps {
+  collapsed?: boolean;
   onNavigate?: () => void;
 }
 
-const Sidebar = ({ onNavigate }: SidebarProps) => {
+const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { auth } = useAuth();
@@ -73,13 +74,31 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
   };
 
   return (
-    <Box className="premium-fade-up premium-delay-1" sx={{ display: 'flex', flexDirection: 'column', height: '100%', py: 1.25 }}>
-      <Box sx={{ px: 2.25, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+    <Box
+      className="premium-fade-up premium-delay-1"
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        py: collapsed ? 1.5 : 1.25,
+        px: collapsed ? 0 : undefined,
+      }}
+    >
+      <Box
+        sx={{
+          px: collapsed ? 1.5 : 2.25,
+          py: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          gap: collapsed ? 0 : 1.25,
+        }}
+      >
         <Box
           sx={{
             width: 28,
             height: 28,
-            borderRadius: '8px',
+            borderRadius: 'var(--ds-radius-md, 8px)',
             bgcolor: 'primary.main',
             color: 'primary.contrastText',
             display: 'grid',
@@ -91,43 +110,63 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
         >
           A
         </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 700,
-              fontSize: '1rem',
-              color: 'text.primary',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.1,
-            }}
-          >
-            Avicultura
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-            Control Center
-          </Typography>
-        </Box>
+        {!collapsed && (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                fontSize: '1rem',
+                color: 'text.primary',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.1,
+              }}
+            >
+              Avicultura
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
+              Control Center
+            </Typography>
+          </Box>
+        )}
       </Box>
 
-      <Divider sx={{ mx: 1.75, my: 1 }} />
+      {!collapsed && <Divider sx={{ mx: 1.75, my: 1 }} />}
 
-      <List sx={{ flex: 1, px: 1 }}>
-        <Typography
-          variant="body2"
-          sx={{
-            px: 1.5,
-            pt: 0.5,
-            pb: 0.75,
-            color: 'text.secondary',
-            textTransform: 'uppercase',
-            fontSize: '0.69rem',
-            letterSpacing: '0.08em',
-            fontWeight: 700,
-          }}
-        >
-          Navegación
-        </Typography>
+      <List
+        disablePadding
+        dense
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          py: 0,
+          px: collapsed ? 0 : 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: collapsed ? 'center' : 'stretch',
+          '& > *': { flex: '0 0 auto' },
+        }}
+      >
+        {!collapsed && (
+          <Typography
+            variant="body2"
+            component="li"
+            sx={{
+              listStyle: 'none',
+              px: 1.5,
+              pt: 0.5,
+              pb: 0.75,
+              color: 'text.secondary',
+              textTransform: 'uppercase',
+              fontSize: '0.69rem',
+              letterSpacing: '0.08em',
+              fontWeight: 700,
+            }}
+          >
+            Navegación
+          </Typography>
+        )}
         {visibleItems.map((item) => {
           const selected = item.path === '/'
             ? location.pathname === '/'
@@ -138,57 +177,79 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
               key={item.path}
               selected={selected}
               onClick={() => handleClick(item.path)}
-              sx={{ minHeight: 42, px: 1.5, mb: 0.5 }}
+              disableGutters
+              sx={{
+                margin: 0,
+                marginBottom: 4,
+                padding: '8px 12px',
+                minHeight: 36,
+                maxHeight: 36,
+                height: 36,
+                px: collapsed ? 1.5 : 1.5,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                borderRadius: collapsed ? 'var(--ds-radius-md, 8px)' : undefined,
+                mx: collapsed ? 0.5 : 0,
+                flexShrink: 0,
+              }}
+              title={collapsed ? item.label : undefined}
             >
               <ListItemIcon
                 sx={{
-                  mr: 1.2,
+                  mr: collapsed ? 0 : 1.2,
                   justifyContent: 'center',
+                  minWidth: collapsed ? 'auto' : 36,
                   color: selected ? 'primary.main' : 'text.secondary',
+                  '& > svg': { fontSize: 20 },
                 }}
               >
-                <item.Icon size={18} strokeWidth={1.85} aria-hidden />
+                <item.Icon size={20} strokeWidth={1.85} aria-hidden />
               </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: '0.84rem',
-                  fontWeight: selected ? 650 : 500,
-                }}
-              />
-              {selected && (
-                <Chip
-                  size="small"
-                  label=""
-                  sx={{
-                    width: 8,
-                    height: 8,
-                    bgcolor: 'primary.main',
-                    '& .MuiChip-label': { px: 0 },
-                  }}
-                />
+              {!collapsed && (
+                <>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontSize: '0.84rem',
+                      fontWeight: selected ? 650 : 500,
+                    }}
+                  />
+                  {selected && (
+                    <Chip
+                      size="small"
+                      label=""
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        bgcolor: 'primary.main',
+                        '& .MuiChip-label': { px: 0 },
+                      }}
+                    />
+                  )}
+                </>
               )}
             </ListItemButton>
           );
         })}
       </List>
 
-      <Box sx={{ px: 2, pb: 1.25 }}>
-        <Divider sx={{ mb: 1.25 }} />
-        <Chip
-          size="small"
-          label={userRole === 'administrador' ? 'Acceso completo' : 'Acceso operativo'}
-          variant="outlined"
-          sx={{
-            borderColor: 'divider',
-            color: 'text.secondary',
-            bgcolor: 'rgba(255,255,255,0.32)',
-            width: '100%',
-            justifyContent: 'flex-start',
-            '& .MuiChip-label': { px: 1 },
-          }}
-        />
-      </Box>
+      {!collapsed && (
+        <Box sx={{ px: 2, pb: 1.25 }}>
+          <Divider sx={{ mb: 1.25 }} />
+          <Chip
+            size="small"
+            label={userRole === 'administrador' ? 'Acceso completo' : 'Acceso operativo'}
+            variant="outlined"
+            sx={{
+              borderColor: 'divider',
+              color: 'text.secondary',
+              bgcolor: 'rgba(255,255,255,0.32)',
+              width: '100%',
+              justifyContent: 'flex-start',
+              '& .MuiChip-label': { px: 1 },
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 };

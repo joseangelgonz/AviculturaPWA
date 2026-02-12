@@ -98,7 +98,7 @@ const AlimentacionForm = () => {
   }
 
   return (
-    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
+    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 'var(--ds-radius-md, 8px)' }}>
       <Typography variant="h6" gutterBottom>
         Registrar Alimentación Diaria
       </Typography>

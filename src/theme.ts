@@ -103,7 +103,7 @@ const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 14,
+    borderRadius: 10,
   },
   typography: {
     fontFamily: '"Public Sans", "Inter", "Segoe UI", "Helvetica Neue", "Arial", sans-serif',
@@ -161,9 +161,9 @@ const theme = createTheme({
           '--ds-space-4': '16px',
           '--ds-space-5': '24px',
           '--ds-space-6': '32px',
-          '--ds-radius-sm': '8px',
-          '--ds-radius-md': '10px',
-          '--ds-radius-lg': '14px',
+          '--ds-radius-sm': '6px',
+          '--ds-radius-md': '8px',
+          '--ds-radius-lg': '10px',
           '--ds-action-hover': ACTION.hover,
           '--ds-action-selected': ACTION.selected,
           '--ds-action-pressed': ACTION.pressed,
@@ -197,6 +197,7 @@ const theme = createTheme({
         root: {
           backgroundImage: 'none',
           border: `1px solid ${BRAND.divider}`,
+          borderRadius: 'var(--ds-radius-md, 8px)',
           transition: 'border-color 180ms ease, box-shadow 180ms ease',
         },
       },
@@ -207,6 +208,7 @@ const theme = createTheme({
         root: {
           backgroundImage: 'none',
           border: `1px solid ${BRAND.divider}`,
+          borderRadius: 'var(--ds-radius-lg, 10px)',
           boxShadow: '0 1px 0 rgba(29, 31, 26, 0.03), 0 12px 24px rgba(29, 31, 26, 0.03)',
           transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
         },
@@ -216,6 +218,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           padding: 18,
+          minWidth: 0,
+          overflow: 'hidden',
           '&:last-child': {
             paddingBottom: 18,
           },

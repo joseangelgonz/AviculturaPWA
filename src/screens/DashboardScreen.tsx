@@ -99,7 +99,7 @@ const DashboardScreen = () => {
         </Grid>
       </Grid>
 
-      <Paper className="premium-fade-up premium-delay-2" sx={{ p: { xs: 1.25, sm: 1.5 }, borderRadius: 3 }}>
+      <Paper className="premium-fade-up premium-delay-2" sx={{ p: { xs: 1.25, sm: 1.5 }, borderRadius: 'var(--ds-radius-lg, 10px)', minWidth: 0, overflow: 'hidden' }}>
         <Typography
           variant="body2"
           sx={{
@@ -113,8 +113,8 @@ const DashboardScreen = () => {
         >
           Tendencias
         </Typography>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 8 }}>
+        <Grid container spacing={2} sx={{ minWidth: 0 }}>
+          <Grid size={{ xs: 12, md: 8 }} sx={{ minWidth: 0 }}>
             {loading ? (
               <Skeleton variant="rounded" height={340} />
             ) : (
@@ -125,7 +125,7 @@ const DashboardScreen = () => {
               </ErrorBoundary>
             )}
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={{ xs: 12, md: 4 }} sx={{ minWidth: 0 }}>
             {loading ? (
               <Skeleton variant="rounded" height={340} />
             ) : (

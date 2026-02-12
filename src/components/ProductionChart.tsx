@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { useTheme } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { LineChart } from '@mui/x-charts/LineChart';
 import ChartCard from './ChartCard';
 import type { DailyProductionPoint } from '../services/DashboardService';
@@ -20,6 +20,7 @@ const ProductionChart = memo(({ data }: ProductionChartProps) => {
       emptyMessage="Sin datos de producción disponibles"
       isEmpty={data.length === 0}
     >
+      <Box sx={{ width: '100%', minWidth: 0 }}>
       <LineChart
         xAxis={[{
           data: xAxisData,
@@ -38,6 +39,7 @@ const ProductionChart = memo(({ data }: ProductionChartProps) => {
         margin={{ left: 56, right: 16, top: 16, bottom: 30 }}
         hideLegend
       />
+      </Box>
     </ChartCard>
   );
 });

@@ -16,6 +16,7 @@ import Sidebar from './Sidebar';
 import { useAuth } from '../AuthContext';
 
 const DRAWER_WIDTH = 272;
+const DRAWER_WIDTH_COLLAPSED = 64;
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Panel',
@@ -34,10 +35,24 @@ const PAGE_TITLES: Record<string, string> = {
 
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const location = useLocation();
   const { auth, signOut } = useAuth();
+
+  const desktopDrawerWidth = sidebarExpanded ? DRAWER_WIDTH : DRAWER_WIDTH_COLLAPSED;
+
+  const handleMenuButtonClick = () => {
+    setSidebarPinned((p) => {
+      if (!p) {
+        setSidebarExpanded(true);
+        return true;
+      }
+      setSidebarExpanded(false);
+      return false;
+    });
+  };
 
   const userEmail =
     auth.status === 'authenticated' ? auth.session.user.email : '';
@@ -64,8 +79,8 @@ const DashboardLayout = () => {
       <AppBar
         position="fixed"
         sx={{
-          width: { md: isSidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
-          ml: { md: isSidebarOpen ? `${DRAWER_WIDTH}px` : '0px' },
+          width: { md: `calc(100% - ${desktopDrawerWidth}px)` },
+          ml: { md: `${desktopDrawerWidth}px` },
           boxShadow: 'none',
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {
@@ -78,16 +93,39 @@ const DashboardLayout = () => {
           <IconButton
             edge="start"
             onClick={() => setMobileOpen(true)}
-            sx={{ mr: 2, display: { md: 'none' }, color: 'text.primary' }}
+            sx={{
+              mr: 2,
+              display: { md: 'none' },
+              color: 'text.primary',
+              width: 40,
+              minWidth: 40,
+              height: 40,
+              minHeight: 40,
+              padding: 0,
+              borderRadius: 'var(--ds-radius-sm, 6px)',
+              '& .MuiTouchRipple-root': { borderRadius: 'var(--ds-radius-sm, 6px)' },
+            }}
           >
             <Menu size={24} strokeWidth={1.75} aria-hidden />
           </IconButton>
           <IconButton
             color="inherit"
-            aria-label="open drawer"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label={sidebarPinned ? 'Soltar menú (volver a ocultar al quitar el cursor)' : 'Fijar menú (mantener abierto)'}
+            onClick={handleMenuButtonClick}
             edge="start"
-            sx={{ mr: 2, display: { xs: 'none', md: 'block' }, color: 'text.primary' }}
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'block' },
+              color: 'text.primary',
+              width: 40,
+              minWidth: 40,
+              height: 40,
+              minHeight: 40,
+              padding: 0,
+              borderRadius: 'var(--ds-radius-sm, 6px)',
+              '& .MuiTouchRipple-root': { borderRadius: 'var(--ds-radius-sm, 6px)' },
+              ...(sidebarPinned && { bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' } }),
+            }}
           >
             <Menu size={24} strokeWidth={1.75} aria-hidden />
           </IconButton>
@@ -161,7 +199,7 @@ const DashboardLayout = () => {
         sx={{
           display: { xs: 'none', md: 'block' },
           '& .MuiDrawer-paper': {
-            width: isSidebarOpen ? DRAWER_WIDTH : 0,
+            width: desktopDrawerWidth,
             overflowX: 'hidden',
             transition: (theme) =>
               theme.transitions.create('width', {
@@ -170,8 +208,22 @@ const DashboardLayout = () => {
               }),
           },
         }}
+        slotProps={{
+          paper: {
+            onMouseEnter: () => setSidebarExpanded(true),
+            onMouseLeave: () => {
+              if (!sidebarPinned) setSidebarExpanded(false);
+            },
+          },
+        }}
       >
-        {isSidebarOpen && <Sidebar />}
+        <Sidebar
+          collapsed={!sidebarExpanded}
+          onNavigate={() => {
+            setMobileOpen(false);
+            setSidebarExpanded(false);
+          }}
+        />
       </Drawer>
 
       <Box
@@ -179,8 +231,8 @@ const DashboardLayout = () => {
         className="premium-fade-up"
         sx={{
           flexGrow: 1,
-          width: { md: isSidebarOpen ? `calc(100% - ${DRAWER_WIDTH}px)` : '100%' },
-          ml: { md: isSidebarOpen ? `${DRAWER_WIDTH}px` : '0px' },
+          width: { md: `calc(100% - ${desktopDrawerWidth}px)` },
+          ml: { md: `${desktopDrawerWidth}px` },
           pt: '60px',
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {

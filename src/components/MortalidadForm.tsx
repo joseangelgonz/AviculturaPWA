@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  MenuItem,
-  CircularProgress,
   Alert,
+  Box,
+  Button,
+  CircularProgress,
+  MenuItem,
   Paper,
+  TextField,
+  Typography,
 } from '@mui/material';
+import dayjs from 'dayjs';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
 import RegistroDiarioGalponService from '../services/RegistroDiarioGalponService';
-import dayjs from 'dayjs';
 
 interface CausaMortalidad {
   codigo: string;
@@ -40,17 +40,26 @@ const MortalidadForm = () => {
         setLoadingCausas(false);
       }
     };
+
     fetchCausas();
   }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (!selectedGalpon) {
-      setMessage({ type: 'error', text: 'No hay galpón seleccionado.' });
+      setMessage({ type: 'error', text: 'No hay galpon seleccionado.' });
       return;
     }
-    if (causaMortalidadCodigo === '' || numeroAvesMuertas === '') {
-      setMessage({ type: 'error', text: 'Por favor, completa todos los campos.' });
+
+    const numeroAvesMuertasNum = Number(numeroAvesMuertas);
+    if (
+      causaMortalidadCodigo === ''
+      || numeroAvesMuertas === ''
+      || !Number.isFinite(numeroAvesMuertasNum)
+      || numeroAvesMuertasNum <= 0
+    ) {
+      setMessage({ type: 'error', text: 'Selecciona una causa e ingresa un numero de aves mayor a 0.' });
       return;
     }
 
@@ -62,7 +71,7 @@ const MortalidadForm = () => {
         selectedGalpon.id,
         fechaActual,
         {
-          numero_aves_muertas: Number(numeroAvesMuertas),
+          numero_aves_muertas: numeroAvesMuertasNum,
           causa_mortalidad_codigo: causaMortalidadCodigo,
         }
       );
@@ -95,7 +104,7 @@ const MortalidadForm = () => {
   }
 
   if (!selectedGalpon) {
-    return <Alert severity="info">Selecciona un galpón para registrar la mortalidad.</Alert>;
+    return <Alert severity="info">Selecciona un galpon para registrar la mortalidad.</Alert>;
   }
 
   return (
@@ -104,7 +113,7 @@ const MortalidadForm = () => {
         Registrar Mortalidad Diaria
       </Typography>
       <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        Galpón seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
+        Galpon seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
       </Typography>
 
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
@@ -118,6 +127,9 @@ const MortalidadForm = () => {
           margin="normal"
           required
         >
+          <MenuItem value="">
+            Selecciona una causa
+          </MenuItem>
           {causasMortalidad.map((causa) => (
             <MenuItem key={causa.codigo} value={causa.codigo}>
               {causa.descripcion}
@@ -126,20 +138,23 @@ const MortalidadForm = () => {
         </TextField>
         <TextField
           id="numero-aves-muertas"
-          label="Número de Aves Muertas"
+          label="Numero de Aves Muertas"
           type="number"
           value={numeroAvesMuertas}
           onChange={(e) => setNumeroAvesMuertas(e.target.value === '' ? '' : Number(e.target.value))}
           fullWidth
           margin="normal"
           required
-          inputProps={{ min: 0 }}
+          inputProps={{ min: 1, step: 1 }}
         />
         {message && (
           <Alert severity={message.type} sx={{ mt: 2 }}>
             {message.text}
           </Alert>
         )}
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          Antes de confirmar, valida la causa y el número de aves. Una vez registres la mortalidad, no podrás modificarla desde este formulario.
+        </Alert>
         <Button
           type="submit"
           variant="contained"
@@ -147,9 +162,9 @@ const MortalidadForm = () => {
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : <span />}
+          startIcon={loading ? <CircularProgress size={20} /> : undefined}
         >
-          {loading ? 'Registrando...' : 'Registrar Mortalidad'}
+          {loading ? 'Registrando...' : 'Registrar mortalidad'}
         </Button>
       </Box>
     </Paper>

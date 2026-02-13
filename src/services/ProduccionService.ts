@@ -84,6 +84,30 @@ const ProduccionService = {
 
     return (count || 0) > 0;
   },
+
+  /**
+   * Obtiene la fecha del último registro de producción para un galpón dado.
+   * @param galpon_id El ID del galpón.
+   * @returns Una promesa que resuelve con la fecha del último registro (YYYY-MM-DD) o null si no hay registros.
+   */
+  async getLastProduccionDate(galpon_id: number): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('produccion')
+      .select('fecha')
+      .eq('galpon_id', galpon_id)
+      .order('fecha', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error al obtener la fecha del último registro de producción:', error);
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      return data[0].fecha as string;
+    }
+    return null;
+  },
 };
 
 export default ProduccionService;

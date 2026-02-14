@@ -66,9 +66,19 @@ const CortesScreen = () => {
   const galponMap = useMemo(() => new Map<number, Galpon>(galpones.map((g) => [g.id, g])), [galpones]);
   const fincaMap = useMemo(() => new Map<number, Finca>(fincas.map((f) => [f.id, f])), [fincas]);
 
+  const activeGalponIds = useMemo(() => {
+    const ids = new Set<number>();
+    cortes.filter(corte => corte.estado === 'activo').forEach(activeCorte => {
+      corteGalpones.filter(cg => cg.corte_id === activeCorte.id).forEach(cg => {
+        ids.add(cg.galpon_id);
+      });
+    });
+    return ids;
+  }, [cortes, corteGalpones]);
+
   const filteredGalpones = useMemo(
-    () => galpones.filter((g) => g.finca_id.toString() === selectedFincaId),
-    [galpones, selectedFincaId],
+    () => galpones.filter((g) => g.finca_id.toString() === selectedFincaId && !activeGalponIds.has(g.id)),
+    [galpones, selectedFincaId, activeGalponIds],
   );
 
   const cortesRows = useMemo<CorteDetalleRow[]>(() => {
@@ -210,42 +220,62 @@ const CortesScreen = () => {
     }
 
     setSaving(true);
-          setFormError(null);
+    setFormError(null);
     
-        try {
-          // Frontend validation: Check if aves_iniciales exceed galpon capacity
-          for (const detalle of payloadDetalles) {
-            const galpon = galponMap.get(detalle.galpon_id);
-            if (galpon && detalle.aves_iniciales > galpon.capacidad_aves) {
-              setFormError(`El número de aves (${detalle.aves_iniciales}) para el galpón ${galpon.nombre} excede su capacidad (${galpon.capacidad_aves}).`);
-              setSaving(false);
-              return;
-            }
+    try {
+      // Frontend validation: Check if aves_iniciales exceed galpon capacity or under-utilize
+      let hasUnderUtilization = false;
+      for (const detalle of payloadDetalles) {
+        const galpon = galponMap.get(detalle.galpon_id);
+        if (galpon) {
+          if (detalle.aves_iniciales > galpon.capacidad) {
+            setFormError(`El número de aves (${detalle.aves_iniciales}) para el galpón ${galpon.nombre} excede su capacidad (${galpon.capacidad}).`);
+            setSaving(false);
+            return;
           }
-    
-          await CorteService.createCorte({
-            fecha_inicio: fechaInicio,
-            tipo_ave: tipoAve,
-            notas,
-            numero_aves_total: total,
-            galpones: payloadDetalles,
-          });
-          setDialogOpen(false);
-          await loadData();
-        } catch (err) {
-          let message = 'No se pudo crear el corte.';
-          if (err instanceof Error) {
-            if (err.message.includes('capacidad') || err.message.includes('cupo')) {
-              message = 'La cantidad de aves supera la capacidad total de los galpones seleccionados.';
-            } else {
-              message = err.message;
-            }
+          if (galpon.capacidad !== null && detalle.aves_iniciales < galpon.capacidad) {
+            hasUnderUtilization = true;
           }
-          setFormError(message);
-        } finally {
-          setSaving(false);
         }
-      };
+      }
+      
+      if (hasUnderUtilization) {
+        const confirmUnderUtilization = window.confirm(
+          'Algunos galpones están siendo utilizados por debajo de su capacidad. ¿Desea continuar con la creación del corte?',
+        );
+        if (!confirmUnderUtilization) {
+          setSaving(false);
+          return;
+        }
+      }
+    
+      await CorteService.createCorte({
+        fecha_inicio: fechaInicio,
+        tipo_ave: tipoAve,
+        notas,
+        numero_aves_total: total,
+        galpones: payloadDetalles,
+      });
+      setDialogOpen(false);
+      await loadData();
+    } catch (err) {
+      let message = 'No se pudo crear el corte.';
+      if (err instanceof Error) {
+        if (err.message.includes('capacidad') || err.message.includes('cupo')) {
+          message = 'La cantidad de aves supera la capacidad total de los galpones seleccionados.';
+        } else if (err.message.includes('duplicate key') || err.message.includes('violates unique constraint')) {
+          message = 'Ya existe un corte con esta configuración o valores duplicados.';
+        } else {
+          message = `Error del sistema: ${err.message}`; // More informative generic error
+        }
+      } else if (typeof err === 'string') {
+          message = `Error del sistema: ${err}`;
+      }
+      setFormError(message);
+    } finally {
+      setSaving(false);
+    }
+  };
   const handleFinalizar = async (corte: Corte) => {
     const confirmed = window.confirm(`Se finalizara el corte #${corte.id}.`);
     if (!confirmed) return;
@@ -482,7 +512,7 @@ const CortesScreen = () => {
                 >
                   {filteredGalpones.map((galpon) => (
                     <MenuItem key={galpon.id} value={galpon.id.toString()}>
-                      {`${galpon.nombre} (Cap: ${galpon.capacidad_aves})`}
+                      {`${galpon.nombre} (Cap: ${galpon.capacidad})`}
                     </MenuItem>
                   ))}
                 </TextField>

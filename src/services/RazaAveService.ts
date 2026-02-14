@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { RazaAve } from '../models/RazaAve'; // Crearemos este modelo a continuación
+import { RazaAve } from '../models/RazaAve';
 
 export const RazaAveService = {
   async getAll(): Promise<RazaAve[]> {

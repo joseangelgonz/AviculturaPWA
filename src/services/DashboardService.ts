@@ -41,6 +41,18 @@ type DailyRecordRow = {
   cantidad_alimento_bultos: number;
 };
 
+type FeedRecordRow = {
+  galpon_id: number;
+  fecha: string;
+  cantidad_alimento_bultos: number | null;
+};
+
+type MortalityRecordRow = {
+  galpon_id: number;
+  fecha: string;
+  cantidad_aves_muertas: number | null;
+};
+
 type CorteRow = {
   id: number;
   numero_aves_total: number;
@@ -61,6 +73,87 @@ function getDaysAgoDate(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
   return d.toISOString().split('T')[0];
+}
+
+function isRelationMissingError(error: unknown): boolean {
+  const err = error as { code?: string; message?: string };
+  return err?.code === 'PGRST205' || (err?.message?.includes('Could not find the table') ?? false);
+}
+
+async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string): Promise<DailyRecordRow[]> {
+  const feedResult = await supabase
+    .from('registro_alimentacion_galpon')
+    .select('galpon_id, fecha, cantidad_alimento_bultos')
+    .in('galpon_id', galponIds)
+    .gte('fecha', sevenDaysAgoDate);
+
+  if (feedResult.error) {
+    if (!isRelationMissingError(feedResult.error)) {
+      logServiceError('Error al obtener registros de alimentación:', feedResult.error);
+      throw new Error('No se pudieron obtener los registros diarios.');
+    }
+
+    // Compatibilidad con esquemas antiguos que usan registro_diario_galpon.
+    const legacyResult = await supabase
+      .from('registro_diario_galpon')
+      .select('galpon_id, fecha, numero_aves_muertas, cantidad_alimento_bultos')
+      .in('galpon_id', galponIds)
+      .gte('fecha', sevenDaysAgoDate);
+
+    if (legacyResult.error) {
+      logServiceError('Error al obtener registros diarios (legacy):', legacyResult.error);
+      throw new Error('No se pudieron obtener los registros diarios.');
+    }
+
+    return (legacyResult.data ?? []) as DailyRecordRow[];
+  }
+
+  const feeds = (feedResult.data ?? []) as FeedRecordRow[];
+  const dailyByKey = new Map<string, DailyRecordRow>();
+
+  for (const feed of feeds) {
+    const key = `${feed.galpon_id}|${feed.fecha}`;
+    dailyByKey.set(key, {
+      galpon_id: feed.galpon_id,
+      fecha: feed.fecha,
+      cantidad_alimento_bultos: feed.cantidad_alimento_bultos ?? 0,
+      numero_aves_muertas: 0,
+    });
+  }
+
+  const mortalityResult = await supabase
+    .from('registro_mortalidad')
+    .select('galpon_id, fecha, cantidad_aves_muertas')
+    .in('galpon_id', galponIds)
+    .gte('fecha', sevenDaysAgoDate);
+
+  if (mortalityResult.error) {
+    if (!isRelationMissingError(mortalityResult.error)) {
+      logServiceError('Error al obtener registros de mortalidad:', mortalityResult.error);
+      throw new Error('No se pudieron obtener los registros diarios.');
+    }
+
+    return Array.from(dailyByKey.values());
+  }
+
+  const mortalityRows = (mortalityResult.data ?? []) as MortalityRecordRow[];
+  for (const mortality of mortalityRows) {
+    const key = `${mortality.galpon_id}|${mortality.fecha}`;
+    const current = dailyByKey.get(key);
+    if (current) {
+      current.numero_aves_muertas += mortality.cantidad_aves_muertas ?? 0;
+      continue;
+    }
+
+    dailyByKey.set(key, {
+      galpon_id: mortality.galpon_id,
+      fecha: mortality.fecha,
+      cantidad_alimento_bultos: 0,
+      numero_aves_muertas: mortality.cantidad_aves_muertas ?? 0,
+    });
+  }
+
+  return Array.from(dailyByKey.values());
 }
 
 function deriveKpis(
@@ -251,18 +344,14 @@ const DashboardService = {
     }
 
     // 2b. Consultar producción, registros diarios y productos en paralelo
-    const [produccionResult, dailyRecordsResult, productosResult] = await Promise.all([
+    const [produccionResult, dailyRecords, productosResult] = await Promise.all([
       supabase
         .from('produccion')
         .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
         .in('galpon_id', galponIds)
         .gte('fecha', thirtyDaysAgoDate)
         .order('fecha', { ascending: true }),
-      supabase
-        .from('registro_diario_galpon')
-        .select('galpon_id, fecha, numero_aves_muertas, cantidad_alimento_bultos')
-        .in('galpon_id', galponIds)
-        .gte('fecha', sevenDaysAgoDate),
+      fetchDailyRecords(galponIds, sevenDaysAgoDate),
       supabase
         .from('productos')
         .select('*'),
@@ -272,17 +361,12 @@ const DashboardService = {
       logServiceError('Error al obtener producción:', produccionResult.error);
       throw new Error('No se pudo obtener la producción.');
     }
-    if (dailyRecordsResult.error) {
-      logServiceError('Error al obtener registros diarios:', dailyRecordsResult.error);
-      throw new Error('No se pudieron obtener los registros diarios.');
-    }
     if (productosResult.error) {
       logServiceError('Error al obtener productos:', productosResult.error);
       throw new Error('No se pudieron obtener los productos.');
     }
 
     const produccionRows = (produccionResult.data ?? []) as Produccion[];
-    const dailyRecords = (dailyRecordsResult.data ?? []) as DailyRecordRow[];
     const products = (productosResult.data ?? []) as Producto[];
     const productMap = new Map<number, Producto>(products.map((p) => [p.codigo, p]));
 

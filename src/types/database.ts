@@ -300,6 +300,87 @@ export type Database = {
           },
         ]
       }
+      registro_alimentacion_galpon: {
+        Row: {
+          galpon_id: number
+          fecha: string
+          producto_alimento_codigo: number
+          cantidad_alimento_bultos: number
+        }
+        Insert: {
+          galpon_id: number
+          fecha: string
+          producto_alimento_codigo: number
+          cantidad_alimento_bultos: number
+        }
+        Update: {
+          galpon_id?: number
+          fecha?: string
+          producto_alimento_codigo?: number
+          cantidad_alimento_bultos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registro_alimentacion_galpon_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registro_alimentacion_galpon_producto_alimento_codigo_fkey"
+            columns: ["producto_alimento_codigo"]
+            isOneToOne: false
+            referencedRelation: "alimentos"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      registro_mortalidad: {
+        Row: {
+          id: number
+          galpon_id: number
+          fecha: string
+          numero_secuencia: number
+          causa_mortalidad_codigo: string
+          cantidad_aves_muertas: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: number
+          galpon_id: number
+          fecha: string
+          numero_secuencia: number
+          causa_mortalidad_codigo: string
+          cantidad_aves_muertas: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: number
+          galpon_id?: number
+          fecha?: string
+          numero_secuencia?: number
+          causa_mortalidad_codigo?: string
+          cantidad_aves_muertas?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registro_mortalidad_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registro_mortalidad_causa_mortalidad_codigo_fkey"
+            columns: ["causa_mortalidad_codigo"]
+            isOneToOne: false
+            referencedRelation: "causas_mortalidad"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       registro_diario_galpon: {
         Row: {
           galpon_id: number

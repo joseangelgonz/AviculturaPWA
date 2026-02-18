@@ -41,6 +41,17 @@ type DailyRecordRow = {
   cantidad_alimento_bultos: number;
 };
 
+type CorteRow = {
+  id: number;
+  numero_aves_total: number;
+  fecha_inicio: string;
+};
+
+type CorteGalponRow = {
+  corte_id: number;
+  galpon_id: number;
+};
+
 // --- Utilidades de fecha (YYYY-MM-DD para comparar con columnas date de Supabase) ---
 function getTodayDate(): string {
   return new Date().toISOString().split('T')[0];
@@ -52,8 +63,6 @@ function getDaysAgoDate(days: number): string {
   return d.toISOString().split('T')[0];
 }
 
-type CorteRow = { id: number; numero_aves: number; galpon_id: number; fecha_inicio: string };
-
 function deriveKpis(
   cortes: CorteRow[],
   produccion: Produccion[],
@@ -61,7 +70,7 @@ function deriveKpis(
   todayDate: string,
   sevenDaysAgoDate: string
 ): KpiSummary {
-  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
+  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves_total, 0);
 
   const todayRows = produccion.filter((p) => p.fecha === todayDate);
   const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgoDate);
@@ -125,20 +134,23 @@ function deriveClassification(produccion: Produccion[], productMap: Map<number, 
 
 function deriveAlerts(
   cortes: CorteRow[],
+  corteGalponesMap: Map<number, number[]>,
   produccion: Produccion[],
   dailyRecords: DailyRecordRow[],
   todayDate: string,
   sevenDaysAgoDate: string
 ): DashboardAlert[] {
   const alerts: DashboardAlert[] = [];
-  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
+  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves_total, 0);
 
   const todayRows = produccion.filter((p) => p.fecha === todayDate);
 
   // Sin datos hoy por corte
   const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
   for (const corte of cortes) {
-    if (!galponesConDatosHoy.has(corte.galpon_id)) {
+    const corteGalponIds = corteGalponesMap.get(corte.id) ?? [];
+    const sinDatos = corteGalponIds.some((gid) => !galponesConDatosHoy.has(gid));
+    if (corteGalponIds.length > 0 && sinDatos) {
       alerts.push({
         id: `sin-datos-${corte.id}`,
         severity: 'info',
@@ -150,7 +162,10 @@ function deriveAlerts(
   // Mortalidad alta (from registro_diario_galpon)
   const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
   for (const corte of cortes) {
-    const corteRecords = weekDailyRecords.filter((r) => r.galpon_id === corte.galpon_id && r.numero_aves_muertas > 0);
+    const corteGalponIds = new Set(corteGalponesMap.get(corte.id) ?? []);
+    const corteRecords = weekDailyRecords.filter(
+      (r) => corteGalponIds.has(r.galpon_id) && r.numero_aves_muertas > 0
+    );
     if (corteRecords.length === 0) continue;
 
     const todayMortality = corteRecords
@@ -207,16 +222,35 @@ const DashboardService = {
     // 1. Consultar cortes activos
     const { data: cortes, error: cortesError } = await supabase
       .from('cortes')
-      .select('id, numero_aves, galpon_id, fecha_inicio')
+      .select('id, numero_aves_total, fecha_inicio')
       .eq('estado', 'activo');
 
     if (cortesError || !cortes || cortes.length === 0) {
       return EMPTY_DASHBOARD;
     }
 
-    const galponIds = cortes.map((c) => c.galpon_id);
+    const corteRows = (cortes ?? []) as CorteRow[];
+    const corteIds = corteRows.map((c) => c.id);
 
-    // 2. Consultar producción (clasificación de huevos), registros diarios y productos en paralelo
+    // 2a. Consultar galpon_ids desde corte_galpones
+    const { data: corteGalponesData, error: cgError } = await supabase
+      .from('corte_galpones')
+      .select('corte_id, galpon_id')
+      .in('corte_id', corteIds);
+
+    if (cgError) {
+      logServiceError('Error al obtener corte_galpones:', cgError);
+      throw new Error('No se pudieron obtener los galpones de los cortes.');
+    }
+
+    const corteGalpones = (corteGalponesData ?? []) as CorteGalponRow[];
+    const galponIds = [...new Set(corteGalpones.map((cg) => cg.galpon_id))];
+
+    if (galponIds.length === 0) {
+      return EMPTY_DASHBOARD;
+    }
+
+    // 2b. Consultar producción, registros diarios y productos en paralelo
     const [produccionResult, dailyRecordsResult, productosResult] = await Promise.all([
       supabase
         .from('produccion')
@@ -250,14 +284,22 @@ const DashboardService = {
     const produccionRows = (produccionResult.data ?? []) as Produccion[];
     const dailyRecords = (dailyRecordsResult.data ?? []) as DailyRecordRow[];
     const products = (productosResult.data ?? []) as Producto[];
-    const productMap = new Map<number, Producto>(products.map(p => [p.codigo, p]));
+    const productMap = new Map<number, Producto>(products.map((p) => [p.codigo, p]));
 
-    // 3. Derivar todos los datos
+    // 3. Construir mapa corte -> galpon_ids para alertas
+    const corteGalponesMap = new Map<number, number[]>();
+    for (const cg of corteGalpones) {
+      const current = corteGalponesMap.get(cg.corte_id) ?? [];
+      current.push(cg.galpon_id);
+      corteGalponesMap.set(cg.corte_id, current);
+    }
+
+    // 4. Derivar todos los datos
     return {
-      kpis: deriveKpis(cortes, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
+      kpis: deriveKpis(corteRows, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
       chart: deriveChart(produccionRows),
       classification: deriveClassification(produccionRows, productMap, todayDate),
-      alerts: deriveAlerts(cortes, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
+      alerts: deriveAlerts(corteRows, corteGalponesMap, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
     };
   },
 };

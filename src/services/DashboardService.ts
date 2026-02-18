@@ -56,7 +56,7 @@ function getDaysAgoISO(days: number): string {
 import type { Produccion } from '../models/Produccion';
 
 
-type CorteRow = { id: number; numero_aves: number; galpon_id: number; fecha_inicio: string };
+type CorteRow = { id: number; numero_aves: number; galpon_id: number | null; fecha_inicio: string };
 
 // --- Derivar datos desde 2 consultas ---
 function deriveKpis(
@@ -190,7 +190,7 @@ function deriveAlerts(
   // Sin datos hoy por corte
   const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
   for (const corte of cortes) {
-    if (!galponesConDatosHoy.has(corte.galpon_id)) {
+    if (corte.galpon_id != null && !galponesConDatosHoy.has(corte.galpon_id)) {
       alerts.push({
         id: `sin-datos-${corte.id}`,
         severity: 'info',
@@ -278,7 +278,7 @@ const DashboardService = {
       return EMPTY_DASHBOARD;
     }
 
-    const galponIds = cortes.map((c) => c.galpon_id);
+    const galponIds = cortes.map((c) => c.galpon_id).filter((id): id is number => id !== null);
 
     // 2. Consultar toda la producción de los últimos 30 días (por galpon_id)
     const { data: produccionData, error: produccionError } = await supabase

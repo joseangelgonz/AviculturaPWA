@@ -1,18 +1,17 @@
 import { supabase } from './supabaseClient';
-import { RazaAve } from '../models/RazaAve';
+import type { RazaAve } from '../models/RazaAve';
 
-export const RazaAveService = {
+const RazaAveService = {
   async getAll(): Promise<RazaAve[]> {
     const { data, error } = await supabase
       .from('razas_ave')
       .select('*')
       .order('descripcion', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching razas de ave:', error);
-      throw new Error(error.message);
-    }
+    if (error) throw error;
 
     return data as RazaAve[];
   },
 };
+
+export default RazaAveService;

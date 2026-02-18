@@ -54,17 +54,58 @@ export type Database = {
         }
         Relationships: []
       }
+      corte_galpones: {
+        Row: {
+          id: number
+          corte_id: number
+          galpon_id: number
+          aves_iniciales: number
+          aves_actuales: number
+        }
+        Insert: {
+          id?: number
+          corte_id: number
+          galpon_id: number
+          aves_iniciales?: number
+          aves_actuales?: number
+        }
+        Update: {
+          id?: number
+          corte_id?: number
+          galpon_id?: number
+          aves_iniciales?: number
+          aves_actuales?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "corte_galpones_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "corte_galpones_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cortes: {
         Row: {
           created_at: string | null
           estado: string
           fecha_final: string | null
           fecha_inicio: string
-          galpon_id: number
+          galpon_id: number | null
           id: number
           notas: string | null
           numero_aves: number
+          numero_aves_total: number
           saldo_aves: number
+          saldo_aves_total: number
           tipo_ave: string | null
         }
         Insert: {
@@ -72,11 +113,13 @@ export type Database = {
           estado?: string
           fecha_final?: string | null
           fecha_inicio: string
-          galpon_id: number
+          galpon_id?: number | null
           id?: number
           notas?: string | null
           numero_aves: number
+          numero_aves_total?: number
           saldo_aves?: number
+          saldo_aves_total?: number
           tipo_ave?: string | null
         }
         Update: {
@@ -84,11 +127,13 @@ export type Database = {
           estado?: string
           fecha_final?: string | null
           fecha_inicio?: string
-          galpon_id?: number
+          galpon_id?: number | null
           id?: number
           notas?: string | null
           numero_aves?: number
+          numero_aves_total?: number
           saldo_aves?: number
+          saldo_aves_total?: number
           tipo_ave?: string | null
         }
         Relationships: [
@@ -336,6 +381,24 @@ export type Database = {
           },
         ]
       }
+      razas_ave: {
+        Row: {
+          id: number
+          codigo: string
+          descripcion: string
+        }
+        Insert: {
+          id?: number
+          codigo: string
+          descripcion: string
+        }
+        Update: {
+          id?: number
+          codigo?: string
+          descripcion?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           email: string | null
@@ -383,7 +446,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      crear_corte_con_galpones: {
+        Args: {
+          p_fecha_inicio: string
+          p_tipo_ave: string
+          p_notas: string
+          p_numero_aves_total: number
+          p_galpones: Json
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

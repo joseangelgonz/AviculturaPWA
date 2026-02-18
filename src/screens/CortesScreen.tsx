@@ -30,7 +30,7 @@ import type { RazaAve } from '../models/RazaAve';
 import CorteService from '../services/CorteService';
 import FincaService from '../services/FincaService';
 import GalponService from '../services/GalponService';
-import { RazaAveService } from '../services/RazaAveService';
+import RazaAveService from '../services/RazaAveService';
 
 interface FormDetalle {
   galponId: string;
@@ -55,6 +55,8 @@ const CortesScreen = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmUnderUtil, setConfirmUnderUtil] = useState(false);
+  const [confirmFinalizar, setConfirmFinalizar] = useState<Corte | null>(null);
 
   const [fechaInicio, setFechaInicio] = useState(dayjs().format('YYYY-MM-DD'));
   const [tipoAve, setTipoAve] = useState('');
@@ -227,28 +229,40 @@ const CortesScreen = () => {
       let hasUnderUtilization = false;
       for (const detalle of payloadDetalles) {
         const galpon = galponMap.get(detalle.galpon_id);
-        if (galpon) {
+        if (galpon && galpon.capacidad != null) {
           if (detalle.aves_iniciales > galpon.capacidad) {
             setFormError(`El número de aves (${detalle.aves_iniciales}) para el galpón ${galpon.nombre} excede su capacidad (${galpon.capacidad}).`);
             setSaving(false);
             return;
           }
-          if (galpon.capacidad !== null && detalle.aves_iniciales < galpon.capacidad) {
+          if (detalle.aves_iniciales < galpon.capacidad) {
             hasUnderUtilization = true;
           }
         }
       }
-      
+
       if (hasUnderUtilization) {
-        const confirmUnderUtilization = window.confirm(
-          'Algunos galpones están siendo utilizados por debajo de su capacidad. ¿Desea continuar con la creación del corte?',
-        );
-        if (!confirmUnderUtilization) {
-          setSaving(false);
-          return;
-        }
+        setConfirmUnderUtil(true);
+        setSaving(false);
+        return;
       }
-    
+
+      await submitCorte(payloadDetalles, total);
+    } catch (err) {
+      console.error('Error creating corte:', err);
+      setFormError('No se pudo crear el corte. Intente de nuevo.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitCorte = async (
+    payloadDetalles: { galpon_id: number; aves_iniciales: number }[],
+    total: number,
+  ) => {
+    setSaving(true);
+    setFormError(null);
+    try {
       await CorteService.createCorte({
         fecha_inicio: fechaInicio,
         tipo_ave: tipoAve,
@@ -257,29 +271,24 @@ const CortesScreen = () => {
         galpones: payloadDetalles,
       });
       setDialogOpen(false);
+      setConfirmUnderUtil(false);
       await loadData();
     } catch (err) {
-      let message = 'No se pudo crear el corte.';
-      if (err instanceof Error) {
-        if (err.message.includes('capacidad') || err.message.includes('cupo')) {
-          message = 'La cantidad de aves supera la capacidad total de los galpones seleccionados.';
-        } else if (err.message.includes('duplicate key') || err.message.includes('violates unique constraint')) {
-          message = 'Ya existe un corte con esta configuración o valores duplicados.';
-        } else {
-          message = `Error del sistema: ${err.message}`; // More informative generic error
-        }
-      } else if (typeof err === 'string') {
-          message = `Error del sistema: ${err}`;
-      }
-      setFormError(message);
+      console.error('Error creating corte:', err);
+      setFormError('No se pudo crear el corte. Intente de nuevo.');
     } finally {
       setSaving(false);
     }
   };
-  const handleFinalizar = async (corte: Corte) => {
-    const confirmed = window.confirm(`Se finalizara el corte #${corte.id}.`);
-    if (!confirmed) return;
 
+  const handleFinalizar = (corte: Corte) => {
+    setConfirmFinalizar(corte);
+  };
+
+  const doFinalizar = async () => {
+    if (!confirmFinalizar) return;
+    const corte = confirmFinalizar;
+    setConfirmFinalizar(null);
     setFinalizingId(corte.id);
     setError(null);
 
@@ -287,8 +296,8 @@ const CortesScreen = () => {
       await CorteService.finalizarCorte(corte.id, dayjs().format('YYYY-MM-DD'));
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo finalizar el corte.';
-      setError(message);
+      console.error('Error finalizing corte:', err);
+      setError('No se pudo finalizar el corte.');
     } finally {
       setFinalizingId(null);
     }
@@ -560,6 +569,48 @@ const CortesScreen = () => {
           <Button onClick={handleCloseDialog} disabled={saving}>Cancelar</Button>
           <Button onClick={() => void handleCreateCorte()} variant="contained" disabled={saving}>
             {saving ? 'Guardando...' : 'Crear corte'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmación sub-utilización */}
+      <Dialog open={confirmUnderUtil} onClose={() => setConfirmUnderUtil(false)}>
+        <DialogTitle>Confirmar creación</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Algunos galpones están siendo utilizados por debajo de su capacidad. ¿Desea continuar con la creación del corte?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmUnderUtil(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              const total = Number(numeroAvesTotal);
+              const payloadDetalles = detalles.map((d) => ({
+                galpon_id: Number(d.galponId),
+                aves_iniciales: Number(d.avesIniciales),
+              }));
+              void submitCorte(payloadDetalles, total);
+            }}
+          >
+            Continuar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirmación finalizar corte */}
+      <Dialog open={confirmFinalizar !== null} onClose={() => setConfirmFinalizar(null)}>
+        <DialogTitle>Finalizar corte</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Se finalizará el corte #{confirmFinalizar?.id}. ¿Desea continuar?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmFinalizar(null)}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void doFinalizar()}>
+            Finalizar
           </Button>
         </DialogActions>
       </Dialog>

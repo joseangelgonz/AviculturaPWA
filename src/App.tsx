@@ -18,6 +18,7 @@ import { AuthContext } from './AuthContext';
 import { SelectedGalponProvider } from './components/SelectedGalponProvider';
 import type { AuthState } from './AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import CortesScreen from './screens/CortesScreen';
 
 // --- Placeholder para rutas futuras ---
 const Placeholder = ({ title }: { title: string }) => (
@@ -110,7 +111,7 @@ function App() {
               )} />
               <Route path="/produccion" element={<Placeholder title="Producción" />} />
               <Route path="/galpones" element={<Placeholder title="Galpones" />} />
-              <Route path="/cortes" element={<Placeholder title="Cortes" />} />
+              <Route path="/cortes" element={<RoleGuard allowedRoles={['administrador']}><CortesScreen /></RoleGuard>} />
               <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Fincas" /></RoleGuard>} />
               <Route path="/reportes" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Reportes" /></RoleGuard>} />
               <Route path="/alertas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Alertas" /></RoleGuard>} />

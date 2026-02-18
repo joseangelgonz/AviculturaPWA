@@ -13,6 +13,5 @@ INSERT INTO "public"."razas_ave" ("codigo", "descripcion") VALUES
 ('BABCOCK-BROWN', 'Babcock Brown - Equilibrada, robusta y de alto rendimiento'),
 ('AUSTRALORP', 'Australorp - Dócil, adaptable a climas fríos, alta producción'),
 ('FAGRO', 'FAGRO - Gallina criolla mejorada (huevos blancos)'),
-('IPA', 'IPA - Gallina criolla mejorada (huevos crema o blancos)');
-
-COMMENT ON TABLE "public"."razas_ave" IS 'Catálogo de razas de aves de postura.';
+('IPA', 'IPA - Gallina criolla mejorada (huevos crema o blancos)')
+ON CONFLICT ("codigo") DO NOTHING;

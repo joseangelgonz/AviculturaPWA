@@ -11,13 +11,15 @@ const ChartCard = ({ title, emptyMessage, isEmpty, children }: ChartCardProps) =
   <Card
     sx={{
       height: '100%',
-      borderRadius: 3,
+      minWidth: 0,
+      overflow: 'hidden',
+      borderRadius: 'var(--ds-radius-lg, 10px)',
       '&:hover': {
         borderColor: '#D1C8B8',
       },
     }}
   >
-    <CardContent>
+    <CardContent sx={{ minWidth: 0, overflow: 'hidden' }}>
       <Typography
         variant="h6"
         sx={{
@@ -27,17 +29,20 @@ const ChartCard = ({ title, emptyMessage, isEmpty, children }: ChartCardProps) =
           color: 'text.primary',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
         }}
       >
         {title}
       </Typography>
       <Box sx={{ borderTop: '1px solid', borderColor: 'divider', mb: 1.5 }} />
       {isEmpty ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'text.secondary' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'text.secondary', minWidth: 0 }}>
           <Typography variant="body2">{emptyMessage}</Typography>
         </Box>
       ) : (
-        children
+        <Box sx={{ minWidth: 0, overflow: 'hidden' }}>{children}</Box>
       )}
     </CardContent>
   </Card>

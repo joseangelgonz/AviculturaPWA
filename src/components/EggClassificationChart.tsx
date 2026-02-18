@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { useTheme } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { PieChart } from '@mui/x-charts/PieChart';
 import ChartCard from './ChartCard';
@@ -37,17 +37,19 @@ const EggClassificationChart = memo(({ data }: EggClassificationChartProps) => {
       emptyMessage="Sin datos de clasificación disponibles"
       isEmpty={data.length === 0}
     >
-      <PieChart
-        series={[{
-          data: pieData,
-          innerRadius: '40%',
-          outerRadius: '80%',
-          paddingAngle: 2,
-          cornerRadius: 4,
-        }]}
-        height={280}
-        margin={{ left: 0, right: 80, top: 0, bottom: 0 }}
-      />
+      <Box sx={{ width: '100%', minWidth: 0 }}>
+        <PieChart
+          series={[{
+            data: pieData,
+            innerRadius: '40%',
+            outerRadius: '80%',
+            paddingAngle: 2,
+            cornerRadius: 4,
+          }]}
+          height={280}
+          margin={{ left: 0, right: 80, top: 0, bottom: 0 }}
+        />
+      </Box>
     </ChartCard>
   );
 });

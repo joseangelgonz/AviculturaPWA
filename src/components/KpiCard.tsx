@@ -17,7 +17,7 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%', borderRadius: 3 }}>
+      <Card sx={{ height: '100%', minWidth: 0, borderRadius: 'var(--ds-radius-lg, 10px)' }}>
         <CardContent>
           <Skeleton variant="text" width="60%" />
           <Skeleton variant="text" width="40%" height={48} />
@@ -32,7 +32,9 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
       className="premium-fade-up premium-delay-1"
       sx={{
         height: '100%',
-        borderRadius: 3,
+        minWidth: 0,
+        overflow: 'hidden',
+        borderRadius: 'var(--ds-radius-lg, 10px)',
         '&:hover': {
           transform: 'translateY(-2px)',
           borderColor: '#D1C8B8',
@@ -41,7 +43,7 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
       }}
     >
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25, minWidth: 0 }}>
           <Typography
             variant="h6"
             component="span"
@@ -51,6 +53,9 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
               fontSize: '0.69rem',
               letterSpacing: '0.08em',
               fontWeight: 700,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
             {label}
@@ -63,8 +68,9 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
                 placeItems: 'center',
                 width: 28,
                 height: 28,
-                borderRadius: '9px',
+                borderRadius: 'var(--ds-radius-sm, 6px)',
                 bgcolor: 'rgba(75, 90, 40, 0.09)',
+                flexShrink: 0,
               }}
             >
               {icon}
@@ -72,7 +78,7 @@ const KpiCard = ({ label, value, unit, loading, icon }: KpiCardProps) => {
           )}
         </Box>
 
-        <Typography variant="h3" component="div" sx={{ mb: 0.25, fontSize: '1.95rem' }}>
+        <Typography variant="h3" component="div" sx={{ mb: 0.25, fontSize: '1.95rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {formattedValue}
           {unit && value != null && (
             <Typography

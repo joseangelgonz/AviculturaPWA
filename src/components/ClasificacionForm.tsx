@@ -248,7 +248,7 @@ const ClasificacionForm = () => {
   }
 
   return (
-    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 860, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
+    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 860, mx: 'auto', mt: 1.5, borderRadius: 'var(--ds-radius-md, 8px)' }}>
       <Typography variant="h6" gutterBottom>
         Registrar Clasificación de Huevos
       </Typography>

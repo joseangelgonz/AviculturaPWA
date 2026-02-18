@@ -182,21 +182,14 @@ const ClasificacionForm = () => {
     setLoading(true);
     setMessage(null);
     try {
-      let currentNumeroSecuencia = await ProduccionService.getNextNumeroSecuencia(
+      await ProduccionService.addClasificacionBatch(
         selectedGalpon.id,
-        selectedDate
+        selectedDate,
+        validEntries.map((entry) => ({
+          producto_codigo: Number(entry.producto_codigo),
+          cantidad: Number(entry.cantidad),
+        }))
       );
-
-      for (const entry of validEntries) {
-        await ProduccionService.addClasificacionEntry(
-          selectedGalpon.id,
-          selectedDate,
-          currentNumeroSecuencia,
-          Number(entry.producto_codigo),
-          Number(entry.cantidad)
-        );
-        currentNumeroSecuencia += 1;
-      }
 
       setMessage({ type: 'success', text: 'Clasificacion registrada exitosamente.' });
       setEntries([{ id: 1, producto_codigo: '', cantidad: '' }]);

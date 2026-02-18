@@ -75,38 +75,18 @@ CREATE POLICY "Usuarios autenticados pueden ver alimentos"
   ON public.alimentos FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
--- Gestion solo para administradores
+-- Gestion solo para administradores (usa funcion SECURITY DEFINER existente)
 DROP POLICY IF EXISTS "Los administradores pueden gestionar fabricantes de alimento" ON public.fabricantes_alimento;
 CREATE POLICY "Los administradores pueden gestionar fabricantes de alimento"
   ON public.fabricantes_alimento FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'administrador'
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'administrador'
-    )
-  );
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 DROP POLICY IF EXISTS "Los administradores pueden gestionar alimentos" ON public.alimentos;
 CREATE POLICY "Los administradores pueden gestionar alimentos"
   ON public.alimentos FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'administrador'
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'administrador'
-    )
-  );
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 -- 4) Backfill de codigos de alimento usados historicamente para no romper la FK.
 DO $$
@@ -133,7 +113,7 @@ BEGIN
       v_fabricante_legado_id,
       COALESCE(p.descripcion, 'Alimento legado codigo ' || rdg.producto_alimento_codigo::TEXT),
       'postura',
-      FALSE
+      TRUE
     FROM (
       SELECT DISTINCT producto_alimento_codigo
       FROM public.registro_diario_galpon
@@ -155,7 +135,7 @@ BEGIN
       v_fabricante_legado_id,
       COALESCE(p.descripcion, 'Alimento legado codigo ' || rag.producto_alimento_codigo::TEXT),
       'postura',
-      FALSE
+      TRUE
     FROM (
       SELECT DISTINCT producto_alimento_codigo
       FROM public.registro_alimentacion_galpon
@@ -190,6 +170,9 @@ BEGIN
     FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = 'registro_alimentacion_galpon'
   ) THEN
+    -- Eliminar ambos nombres posibles de constraint (antes y despues del rename de la tabla)
+    ALTER TABLE public.registro_alimentacion_galpon
+      DROP CONSTRAINT IF EXISTS registro_diario_galpon_producto_alimento_codigo_fkey;
     ALTER TABLE public.registro_alimentacion_galpon
       DROP CONSTRAINT IF EXISTS registro_alimentacion_galpon_producto_alimento_codigo_fkey;
 

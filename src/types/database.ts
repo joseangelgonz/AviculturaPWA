@@ -54,6 +54,59 @@ export type Database = {
         }
         Relationships: []
       }
+      fabricantes_alimento: {
+        Row: {
+          created_at: string
+          id: number
+          nombre: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          nombre: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
+      }
+      alimentos: {
+        Row: {
+          activo: boolean
+          categoria: string | null
+          codigo: number
+          created_at: string
+          descripcion: string
+          fabricante_alimento_id: number
+        }
+        Insert: {
+          activo?: boolean
+          categoria?: string | null
+          codigo?: number
+          created_at?: string
+          descripcion: string
+          fabricante_alimento_id: number
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string | null
+          codigo?: number
+          created_at?: string
+          descripcion?: string
+          fabricante_alimento_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alimentos_fabricante_alimento_id_fkey"
+            columns: ["fabricante_alimento_id"]
+            isOneToOne: false
+            referencedRelation: "fabricantes_alimento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corte_galpones: {
         Row: {
           corte_id: number
@@ -284,7 +337,7 @@ export type Database = {
             foreignKeyName: "registro_diario_galpon_producto_alimento_codigo_fkey"
             columns: ["producto_alimento_codigo"]
             isOneToOne: false
-            referencedRelation: "productos"
+            referencedRelation: "alimentos"
             referencedColumns: ["codigo"]
           },
           {

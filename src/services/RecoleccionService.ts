@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 
 const RecoleccionService = {
   /**
@@ -28,7 +29,7 @@ const RecoleccionService = {
       .select(); // Retorna los datos insertados
 
     if (error) {
-      console.error('Error al registrar recolección de huevos:', error);
+      logServiceError('Error al registrar recolección de huevos:', error);
       throw error;
     }
     return data;
@@ -41,6 +42,21 @@ const RecoleccionService = {
    * @param fecha La fecha (YYYY-MM-DD).
    * @returns El siguiente número de secuencia o 1 si no hay registros existentes para ese día.
    */
+  async getRecoleccionesPorFecha(galpon_id: number, fecha: string) {
+    const { data, error } = await supabase
+      .from('recoleccion_huevos')
+      .select('galpon_id, fecha, numero_secuencia, cantidad_huevos')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha)
+      .order('numero_secuencia', { ascending: true });
+
+    if (error) {
+      logServiceError('Error al obtener recolecciones por fecha:', error);
+      throw error;
+    }
+    return data ?? [];
+  },
+
   async getNextNumeroSecuencia(galpon_id: number, fecha: string): Promise<number> {
     const { data, error } = await supabase
       .from('recoleccion_huevos')
@@ -51,7 +67,7 @@ const RecoleccionService = {
       .limit(1);
 
     if (error) {
-      console.error('Error al obtener el siguiente número de secuencia de recolección:', error);
+      logServiceError('Error al obtener el siguiente número de secuencia de recolección:', error);
       throw error;
     }
 
@@ -75,7 +91,7 @@ const RecoleccionService = {
       .eq('fecha', fecha);
 
     if (error) {
-      console.error('Error al obtener el total de huevos recolectados:', error);
+      logServiceError('Error al obtener el total de huevos recolectados:', error);
       throw error;
     }
 

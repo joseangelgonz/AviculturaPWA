@@ -1,38 +1,33 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 
 const ProduccionService = {
   /**
-   * Inserta un registro de producción (clasificación de huevos).
-   *
-   * @param galpon_id El ID del galpón.
-   * @param fecha La fecha del registro (YYYY-MM-DD).
-   * @param numero_secuencia El número de secuencia para ese galpón y fecha.
-   * @param producto_codigo El código del producto (tipo de huevo).
-   * @param cantidad La cantidad de huevos.
-   * @returns Una promesa que resuelve con los datos insertados o un error.
+   * Inserta múltiples registros de clasificación en una sola operación atómica.
+   * Calcula los números de secuencia a partir del siguiente disponible.
    */
-  async addClasificacionEntry(
+  async addClasificacionBatch(
     galpon_id: number,
     fecha: string,
-    numero_secuencia: number,
-    producto_codigo: number,
-    cantidad: number
+    entries: { producto_codigo: number; cantidad: number }[]
   ) {
+    const startSecuencia = await this.getNextNumeroSecuencia(galpon_id, fecha);
+
+    const rows = entries.map((entry, index) => ({
+      galpon_id,
+      fecha,
+      numero_secuencia: startSecuencia + index,
+      producto_codigo: entry.producto_codigo,
+      cantidad: entry.cantidad,
+    }));
+
     const { data, error } = await supabase
       .from('produccion')
-      .insert([
-        {
-          galpon_id,
-          fecha,
-          numero_secuencia,
-          producto_codigo,
-          cantidad,
-        },
-      ])
+      .insert(rows)
       .select();
 
     if (error) {
-      console.error('Error al registrar entrada de clasificación:', error);
+      logServiceError('Error al registrar clasificación en lote:', error);
       throw error;
     }
     return data;
@@ -54,12 +49,12 @@ const ProduccionService = {
       .limit(1);
 
     if (error) {
-      console.error('Error al obtener el siguiente número de secuencia:', error);
+      logServiceError('Error al obtener el siguiente número de secuencia:', error);
       throw error;
     }
 
     if (data && data.length > 0) {
-      return (data[0].numero_secuencia as number) + 1;
+      return data[0].numero_secuencia + 1;
     }
     return 1; // Si no hay registros, empieza con 1
   },
@@ -73,16 +68,55 @@ const ProduccionService = {
   async checkDailyClasificacionExists(galpon_id: number, fecha: string): Promise<boolean> {
     const { count, error } = await supabase
       .from('produccion')
-      .select('*', { count: 'exact' }) // Select count of id column
+      .select('galpon_id', { count: 'exact', head: true })
       .eq('galpon_id', galpon_id)
       .eq('fecha', fecha);
 
     if (error) {
-      console.error('Error al verificar clasificaciones diarias existentes:', error);
+      logServiceError('Error al verificar clasificaciones diarias existentes:', error);
       throw error;
     }
 
     return (count || 0) > 0;
+  },
+
+  /**
+   * Obtiene la fecha del último registro de producción para un galpón dado.
+   * @param galpon_id El ID del galpón.
+   * @returns Una promesa que resuelve con la fecha del último registro (YYYY-MM-DD) o null si no hay registros.
+   */
+  async getClasificacionesPorFecha(galpon_id: number, fecha: string) {
+    const { data, error } = await supabase
+      .from('produccion')
+      .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha)
+      .order('numero_secuencia', { ascending: true });
+
+    if (error) {
+      logServiceError('Error al obtener clasificaciones por fecha:', error);
+      throw error;
+    }
+    return data ?? [];
+  },
+
+  async getLastProduccionDate(galpon_id: number): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('produccion')
+      .select('fecha')
+      .eq('galpon_id', galpon_id)
+      .order('fecha', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      logServiceError('Error al obtener la fecha del último registro de producción:', error);
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      return data[0].fecha;
+    }
+    return null;
   },
 };
 

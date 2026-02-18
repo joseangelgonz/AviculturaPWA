@@ -13,32 +13,6 @@ interface UpsertRegistroData {
   causa_mortalidad_codigo?: string;
 }
 
-function isRelationMissingError(error: unknown): boolean {
-  const err = error as { code?: string; message?: string };
-  return err?.code === 'PGRST205' || (err?.message?.includes('Could not find the table') ?? false);
-}
-
-async function upsertLegacyRegistroDiario(
-  galpon_id: number,
-  fecha: string,
-  data: UpsertRegistroData
-) {
-  const { data: result, error } = await supabase
-    .from('registro_diario_galpon')
-    .upsert(
-      { galpon_id, fecha, ...data },
-      { onConflict: 'galpon_id,fecha' }
-    )
-    .select();
-
-  if (error) {
-    logServiceError('Error upserting daily record (legacy):', error);
-    throw error;
-  }
-
-  return result;
-}
-
 const RegistroDiarioGalponService = {
   async upsertRegistroDiario(
     galpon_id: number,
@@ -73,10 +47,6 @@ const RegistroDiarioGalponService = {
         .select();
 
       if (feedError) {
-        if (isRelationMissingError(feedError)) {
-          return upsertLegacyRegistroDiario(galpon_id, fecha, data);
-        }
-
         logServiceError('Error upserting feed daily record:', feedError);
         throw feedError;
       }
@@ -98,10 +68,6 @@ const RegistroDiarioGalponService = {
         .limit(1);
 
       if (lastError) {
-        if (isRelationMissingError(lastError)) {
-          return upsertLegacyRegistroDiario(galpon_id, fecha, data);
-        }
-
         logServiceError('Error al consultar siguiente secuencia de mortalidad:', lastError);
         throw lastError;
       }
@@ -122,10 +88,6 @@ const RegistroDiarioGalponService = {
         .select();
 
       if (mortalityError) {
-        if (isRelationMissingError(mortalityError)) {
-          return upsertLegacyRegistroDiario(galpon_id, fecha, data);
-        }
-
         logServiceError('Error al insertar mortalidad diaria:', mortalityError);
         throw mortalityError;
       }
@@ -145,22 +107,6 @@ const RegistroDiarioGalponService = {
       .maybeSingle();
 
     if (feedError) {
-      if (isRelationMissingError(feedError)) {
-        const { data: legacyData, error: legacyError } = await supabase
-          .from('registro_diario_galpon')
-          .select('*')
-          .eq('galpon_id', galpon_id)
-          .eq('fecha', fecha)
-          .maybeSingle();
-
-        if (legacyError) {
-          logServiceError('Error al obtener registro diario (legacy):', legacyError);
-          throw legacyError;
-        }
-
-        return legacyData;
-      }
-
       logServiceError('Error al obtener registro de alimentación diario:', feedError);
       throw feedError;
     }
@@ -172,15 +118,8 @@ const RegistroDiarioGalponService = {
       .eq('fecha', fecha);
 
     if (mortalityError) {
-      if (!isRelationMissingError(mortalityError)) {
-        logServiceError('Error al obtener mortalidad diaria:', mortalityError);
-        throw mortalityError;
-      }
-
-      return {
-        ...feedData,
-        numero_aves_muertas: 0,
-      };
+      logServiceError('Error al obtener mortalidad diaria:', mortalityError);
+      throw mortalityError;
     }
 
     const totalAvesMuertas = (mortalityRows ?? []).reduce(

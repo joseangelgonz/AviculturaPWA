@@ -75,11 +75,6 @@ function getDaysAgoDate(days: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function isRelationMissingError(error: unknown): boolean {
-  const err = error as { code?: string; message?: string };
-  return err?.code === 'PGRST205' || (err?.message?.includes('Could not find the table') ?? false);
-}
-
 async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string): Promise<DailyRecordRow[]> {
   const feedResult = await supabase
     .from('registro_alimentacion_galpon')
@@ -88,24 +83,8 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
     .gte('fecha', sevenDaysAgoDate);
 
   if (feedResult.error) {
-    if (!isRelationMissingError(feedResult.error)) {
-      logServiceError('Error al obtener registros de alimentación:', feedResult.error);
-      throw new Error('No se pudieron obtener los registros diarios.');
-    }
-
-    // Compatibilidad con esquemas antiguos que usan registro_diario_galpon.
-    const legacyResult = await supabase
-      .from('registro_diario_galpon')
-      .select('galpon_id, fecha, numero_aves_muertas, cantidad_alimento_bultos')
-      .in('galpon_id', galponIds)
-      .gte('fecha', sevenDaysAgoDate);
-
-    if (legacyResult.error) {
-      logServiceError('Error al obtener registros diarios (legacy):', legacyResult.error);
-      throw new Error('No se pudieron obtener los registros diarios.');
-    }
-
-    return (legacyResult.data ?? []) as DailyRecordRow[];
+    logServiceError('Error al obtener registros de alimentación:', feedResult.error);
+    throw new Error('No se pudieron obtener los registros diarios.');
   }
 
   const feeds = (feedResult.data ?? []) as FeedRecordRow[];
@@ -128,12 +107,8 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
     .gte('fecha', sevenDaysAgoDate);
 
   if (mortalityResult.error) {
-    if (!isRelationMissingError(mortalityResult.error)) {
-      logServiceError('Error al obtener registros de mortalidad:', mortalityResult.error);
-      throw new Error('No se pudieron obtener los registros diarios.');
-    }
-
-    return Array.from(dailyByKey.values());
+    logServiceError('Error al obtener registros de mortalidad:', mortalityResult.error);
+    throw new Error('No se pudieron obtener los registros diarios.');
   }
 
   const mortalityRows = (mortalityResult.data ?? []) as MortalityRecordRow[];

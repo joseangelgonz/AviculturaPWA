@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 import type { Producto } from '../models/Producto';
-
+import type { Produccion } from '../models/Produccion';
 
 // --- Tipos ---
 export interface KpiSummary {
@@ -33,134 +34,91 @@ export interface DashboardData {
   readonly alerts: DashboardAlert[];
 }
 
-const MORTALIDAD_PRODUCT_CODE = 999; // Placeholder: Assign a valid product code for mortality from your 'productos' table
-const ALIMENTO_PRODUCT_CODE = 998; // Placeholder: Assign a valid product code for feed from your 'productos' table
+type DailyRecordRow = {
+  galpon_id: number;
+  fecha: string;
+  numero_aves_muertas: number;
+  cantidad_alimento_bultos: number;
+};
 
-
-// --- Utilidades de fecha ---
-function getTodayRange(): { start: string; end: string } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return { start: start.toISOString(), end: end.toISOString() };
+// --- Utilidades de fecha (YYYY-MM-DD para comparar con columnas date de Supabase) ---
+function getTodayDate(): string {
+  return new Date().toISOString().split('T')[0];
 }
 
-function getDaysAgoISO(days: number): string {
+function getDaysAgoDate(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
+  return d.toISOString().split('T')[0];
 }
-
-import type { Produccion } from '../models/Produccion';
-
 
 type CorteRow = { id: number; numero_aves: number; galpon_id: number; fecha_inicio: string };
 
-// --- Derivar datos desde 2 consultas ---
 function deriveKpis(
   cortes: CorteRow[],
   produccion: Produccion[],
-  productMap: Map<number, Producto>,
-  today: { start: string; end: string },
-  sevenDaysAgo: string
+  dailyRecords: DailyRecordRow[],
+  todayDate: string,
+  sevenDaysAgoDate: string
 ): KpiSummary {
   const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
 
-  // Helper to identify product types
-  const isEggProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.descripcion?.includes('Huevo') : false; // Assuming eggs have 'Huevo' in description
-  };
-  const isMortalityProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.codigo === MORTALIDAD_PRODUCT_CODE : false; // Assuming a specific code for mortality
-  };
-  const isFeedProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.codigo === ALIMENTO_PRODUCT_CODE : false; // Assuming a specific code for feed
-  };
+  const todayRows = produccion.filter((p) => p.fecha === todayDate);
+  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgoDate);
 
-  const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
-  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
-
-  // Today Production (Eggs)
-  const todayEggProduction = todayRows
-    .filter((p) => isEggProduct(p.producto_codigo))
-    .reduce((sum, p) => sum + p.cantidad, 0);
+  // Today Production (Eggs) — produccion table now only contains egg classification data
+  const todayEggProduction = todayRows.reduce((sum, p) => sum + p.cantidad, 0);
   const todayProduction = todayEggProduction > 0 ? todayEggProduction : null;
 
   const productionRate = todayProduction !== null && totalAves > 0
     ? Math.round((todayProduction / totalAves) * 1000) / 10
     : null;
 
-  // Weekly Mortality
-  const weeklyMortality = weekRows
-    .filter((p) => isMortalityProduct(p.producto_codigo))
-    .reduce((sum, p) => sum + p.cantidad, 0);
-  const totalWeeklyMortality = weeklyMortality > 0 ? weeklyMortality : null;
+  // Weekly Mortality (from registro_diario_galpon)
+  const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
+  const weeklyMortalityTotal = weekDailyRecords.reduce((sum, r) => sum + (r.numero_aves_muertas || 0), 0);
+  const weeklyMortality = weeklyMortalityTotal > 0 ? weeklyMortalityTotal : null;
 
-  // FCR Calculation (Feed Conversion Ratio)
+  // FCR Calculation (Feed Conversion Ratio) from registro_diario_galpon
   let fcr: number | null = null;
-  if (weekRows.length > 0) {
-    const totalAlimento = weekRows
-      .filter((p) => isFeedProduct(p.producto_codigo))
-      .reduce((sum, p) => sum + p.cantidad, 0);
-
-    // This part is complex as we don't have individual egg weights in this structure directly.
-    // For now, let's simplify or assume an average egg weight.
-    // Ideally, productMap should contain average weight for egg products.
-    // For this refactor, let's use a placeholder average weight for eggs.
-    const AVERAGE_EGG_WEIGHT_KG = 0.060; // Placeholder average weight
-    const totalEggMass = weekRows
-      .filter((p) => isEggProduct(p.producto_codigo))
-      .reduce((sum, p) => sum + (p.cantidad * AVERAGE_EGG_WEIGHT_KG), 0);
-
-    fcr = totalEggMass > 0 ? Math.round((totalAlimento / totalEggMass) * 100) / 100 : null;
+  const totalAlimentoBultos = weekDailyRecords.reduce((sum, r) => sum + (r.cantidad_alimento_bultos || 0), 0);
+  if (totalAlimentoBultos > 0) {
+    const AVERAGE_EGG_WEIGHT_KG = 0.060;
+    const weekEggTotal = weekRows.reduce((sum, p) => sum + p.cantidad, 0);
+    const totalEggMass = weekEggTotal * AVERAGE_EGG_WEIGHT_KG;
+    fcr = totalEggMass > 0 ? Math.round((totalAlimentoBultos / totalEggMass) * 100) / 100 : null;
   }
 
-  return { todayProduction, productionRate, weeklyMortality: totalWeeklyMortality, fcr };
+  return { todayProduction, productionRate, weeklyMortality, fcr };
 }
 
-function deriveChart(produccion: Produccion[], productMap: Map<number, Producto>): DailyProductionPoint[] {
+function deriveChart(produccion: Produccion[]): DailyProductionPoint[] {
   if (produccion.length === 0) return [];
 
-  const isEggProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.descripcion?.includes('Huevo') : false; // Assuming eggs have 'Huevo' in description
-  };
-
   const byDate = new Map<string, number>();
-  for (const row of produccion.filter(p => isEggProduct(p.producto_codigo))) {
-    const date = new Date(row.fecha).toLocaleDateString('es-CO');
-    byDate.set(date, (byDate.get(date) ?? 0) + row.cantidad);
+  for (const row of produccion) {
+    byDate.set(row.fecha, (byDate.get(row.fecha) ?? 0) + row.cantidad);
   }
 
-  return Array.from(byDate.entries()).map(([fecha, total]) => ({ fecha, total }));
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([fecha, total]) => ({ fecha, total }));
 }
 
-function deriveClassification(produccion: Produccion[], productMap: Map<number, Producto>, today: { start: string; end: string }): EggClassificationBreakdown[] {
-  const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
+function deriveClassification(produccion: Produccion[], productMap: Map<number, Producto>, todayDate: string): EggClassificationBreakdown[] {
+  const todayRows = produccion.filter((p) => p.fecha === todayDate);
   if (todayRows.length === 0) return [];
-
-  const isEggProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.descripcion?.includes('Huevo') : false;
-  };
 
   const classificationMap = new Map<number, number>();
   for (const row of todayRows) {
-    if (isEggProduct(row.producto_codigo)) {
-      const currentCount = classificationMap.get(row.producto_codigo) ?? 0;
-      classificationMap.set(row.producto_codigo, currentCount + row.cantidad);
-    }
+    const currentCount = classificationMap.get(row.producto_codigo) ?? 0;
+    classificationMap.set(row.producto_codigo, currentCount + row.cantidad);
   }
 
   return Array.from(classificationMap.entries())
     .map(([codigo, count]) => ({
-      classification: productMap.get(codigo)?.descripcion || `Producto ${codigo}`, // Use product description as label
-      count: count,
+      classification: productMap.get(codigo)?.descripcion || `Producto ${codigo}`,
+      count,
     }))
     .filter((item) => item.count > 0);
 }
@@ -168,24 +126,14 @@ function deriveClassification(produccion: Produccion[], productMap: Map<number, 
 function deriveAlerts(
   cortes: CorteRow[],
   produccion: Produccion[],
-  productMap: Map<number, Producto>,
-  today: { start: string; end: string },
-  sevenDaysAgo: string
+  dailyRecords: DailyRecordRow[],
+  todayDate: string,
+  sevenDaysAgoDate: string
 ): DashboardAlert[] {
   const alerts: DashboardAlert[] = [];
   const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
 
-  const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
-  const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
-
-  const isMortalityProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.codigo === MORTALIDAD_PRODUCT_CODE : false;
-  };
-  const isEggProduct = (codigo: number) => {
-    const product = productMap.get(codigo);
-    return product ? product.descripcion?.includes('Huevo') : false;
-  };
+  const todayRows = produccion.filter((p) => p.fecha === todayDate);
 
   // Sin datos hoy por corte
   const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
@@ -199,22 +147,20 @@ function deriveAlerts(
     }
   }
 
-  // Mortalidad alta (muertes hoy > 2x promedio diario últimos 7 días)
+  // Mortalidad alta (from registro_diario_galpon)
+  const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
   for (const corte of cortes) {
-    const corteProdMortality = weekRows.filter((p) => p.galpon_id === corte.galpon_id && isMortalityProduct(p.producto_codigo));
-    if (corteProdMortality.length === 0) continue; // No mortality records for this corte in the week
+    const corteRecords = weekDailyRecords.filter((r) => r.galpon_id === corte.galpon_id && r.numero_aves_muertas > 0);
+    if (corteRecords.length === 0) continue;
 
-    const todayMortality = corteProdMortality
-      .filter((p) => p.fecha >= today.start && p.fecha < today.end)
-      .reduce((sum, p) => sum + p.cantidad, 0);
+    const todayMortality = corteRecords
+      .filter((r) => r.fecha === todayDate)
+      .reduce((sum, r) => sum + r.numero_aves_muertas, 0);
 
-    const pastMortality = corteProdMortality
-      .filter((p) => p.fecha < today.start)
-      .reduce((sum, p) => sum + p.cantidad, 0);
-
-    const pastMortalityDays = new Set(corteProdMortality.filter(p => p.fecha < today.start).map(p => p.fecha.split('T')[0])).size;
-
-    const avgMortality = pastMortalityDays > 0 ? pastMortality / pastMortalityDays : 0;
+    const pastRecords = corteRecords.filter((r) => r.fecha < todayDate);
+    const pastMortality = pastRecords.reduce((sum, r) => sum + r.numero_aves_muertas, 0);
+    const pastDays = pastRecords.length;
+    const avgMortality = pastDays > 0 ? pastMortality / pastDays : 0;
 
     if (todayMortality > avgMortality * 2 && avgMortality > 0) {
       alerts.push({
@@ -227,10 +173,7 @@ function deriveAlerts(
 
   // Baja producción (tasa < 80%)
   if (totalAves > 0) {
-    const todayEggProduction = todayRows
-      .filter((p) => isEggProduct(p.producto_codigo))
-      .reduce((sum, p) => sum + p.cantidad, 0);
-
+    const todayEggProduction = todayRows.reduce((sum, p) => sum + p.cantidad, 0);
     const rate = (todayEggProduction / totalAves) * 100;
 
     if (rate < 80 && rate > 0) {
@@ -242,14 +185,12 @@ function deriveAlerts(
     }
   }
 
-  // Ordenar: error > warning > info
   const severityOrder = { error: 0, warning: 1, info: 2 };
   alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
   return alerts;
 }
 
-/** Datos vacíos por defecto cuando no hay cortes activos. */
 const EMPTY_DASHBOARD: DashboardData = {
   kpis: { todayProduction: null, productionRate: null, weeklyMortality: null, fcr: null },
   chart: [],
@@ -258,15 +199,10 @@ const EMPTY_DASHBOARD: DashboardData = {
 };
 
 const DashboardService = {
-  /**
-   * Obtiene todos los datos del panel de control: KPIs, gráficos, clasificación y alertas.
-   * Consulta cortes activos, producción de los últimos 30 días y productos.
-   * @returns Los datos completos del dashboard o datos vacíos si no hay cortes activos.
-   */
   async fetchDashboardData(): Promise<DashboardData> {
-    const today = getTodayRange();
-    const sevenDaysAgo = getDaysAgoISO(7);
-    const thirtyDaysAgo = getDaysAgoISO(30);
+    const todayDate = getTodayDate();
+    const sevenDaysAgoDate = getDaysAgoDate(7);
+    const thirtyDaysAgoDate = getDaysAgoDate(30);
 
     // 1. Consultar cortes activos
     const { data: cortes, error: cortesError } = await supabase
@@ -280,42 +216,48 @@ const DashboardService = {
 
     const galponIds = cortes.map((c) => c.galpon_id);
 
-    // 2. Consultar toda la producción de los últimos 30 días (por galpon_id)
-    const { data: produccionData, error: produccionError } = await supabase
-      .from('produccion')
-      .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
-      .in('galpon_id', galponIds)
-      .gte('fecha', thirtyDaysAgo)
-      .order('fecha', { ascending: true });
-    
-    if (produccionError) {
-      console.error('Error al obtener producción:', produccionError);
-      // Depending on desired behavior, return EMPTY_DASHBOARD or rethrow
+    // 2. Consultar producción (clasificación de huevos), registros diarios y productos en paralelo
+    const [produccionResult, dailyRecordsResult, productosResult] = await Promise.all([
+      supabase
+        .from('produccion')
+        .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
+        .in('galpon_id', galponIds)
+        .gte('fecha', thirtyDaysAgoDate)
+        .order('fecha', { ascending: true }),
+      supabase
+        .from('registro_diario_galpon')
+        .select('galpon_id, fecha, numero_aves_muertas, cantidad_alimento_bultos')
+        .in('galpon_id', galponIds)
+        .gte('fecha', sevenDaysAgoDate),
+      supabase
+        .from('productos')
+        .select('*'),
+    ]);
+
+    if (produccionResult.error) {
+      logServiceError('Error al obtener producción:', produccionResult.error);
       throw new Error('No se pudo obtener la producción.');
     }
-
-    const produccionRows = (produccionData ?? []) as Produccion[];
-
-    // 3. Consultar productos y unidades de medida
-    const { data: productosData, error: productosError } = await supabase
-      .from('productos')
-      .select('*');
-    if (productosError) {
-      console.error('Error al obtener productos:', productosError);
+    if (dailyRecordsResult.error) {
+      logServiceError('Error al obtener registros diarios:', dailyRecordsResult.error);
+      throw new Error('No se pudieron obtener los registros diarios.');
+    }
+    if (productosResult.error) {
+      logServiceError('Error al obtener productos:', productosResult.error);
       throw new Error('No se pudieron obtener los productos.');
     }
-    const products = (productosData ?? []) as Producto[];
+
+    const produccionRows = (produccionResult.data ?? []) as Produccion[];
+    const dailyRecords = (dailyRecordsResult.data ?? []) as DailyRecordRow[];
+    const products = (productosResult.data ?? []) as Producto[];
     const productMap = new Map<number, Producto>(products.map(p => [p.codigo, p]));
 
-
-
-
-    // 4. Derivar todos los datos desde las consultas
+    // 3. Derivar todos los datos
     return {
-      kpis: deriveKpis(cortes, produccionRows, productMap, today, sevenDaysAgo),
-      chart: deriveChart(produccionRows, productMap),
-      classification: deriveClassification(produccionRows, productMap, today),
-      alerts: deriveAlerts(cortes, produccionRows, productMap, today, sevenDaysAgo),
+      kpis: deriveKpis(cortes, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
+      chart: deriveChart(produccionRows),
+      classification: deriveClassification(produccionRows, productMap, todayDate),
+      alerts: deriveAlerts(cortes, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
     };
   },
 };

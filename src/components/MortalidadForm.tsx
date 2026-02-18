@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, MenuItem, TextField } from '@mui/material';
 import dayjs from 'dayjs';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
+import { useFormSubmit } from '../hooks/useFormSubmit';
 import RegistroDiarioGalponService from '../services/RegistroDiarioGalponService';
+import FormShell from './FormShell';
+import SubmitButton from './SubmitButton';
 
 interface CausaMortalidad {
   codigo: string;
@@ -20,13 +14,12 @@ interface CausaMortalidad {
 
 const MortalidadForm = () => {
   const { selectedGalpon, loading: loadingGalpones, error: galponError } = useSelectedGalpon();
+  const { loading, message, setMessage, handleSubmit: submitWithLoading } = useFormSubmit();
   const [causaMortalidadCodigo, setCausaMortalidadCodigo] = useState<string>('');
   const [numeroAvesMuertas, setNumeroAvesMuertas] = useState<number | ''>('');
   const [causasMortalidad, setCausasMortalidad] = useState<CausaMortalidad[]>([]);
-  const [loading, setLoading] = useState(false);
   const [loadingCausas, setLoadingCausas] = useState(true);
   const [errorCausas, setErrorCausas] = useState<Error | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     const fetchCausas = async () => {
@@ -48,7 +41,7 @@ const MortalidadForm = () => {
     event.preventDefault();
 
     if (!selectedGalpon) {
-      setMessage({ type: 'error', text: 'No hay galpon seleccionado.' });
+      setMessage({ type: 'error', text: 'No hay galpón seleccionado.' });
       return;
     }
 
@@ -60,13 +53,11 @@ const MortalidadForm = () => {
       || numeroAvesMuertasNum <= 0
       || !Number.isInteger(numeroAvesMuertasNum)
     ) {
-      setMessage({ type: 'error', text: 'Selecciona una causa e ingresa un numero entero de aves mayor a 0.' });
+      setMessage({ type: 'error', text: 'Selecciona una causa e ingresa un número entero de aves mayor a 0.' });
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
-    try {
+    await submitWithLoading(async () => {
       const fechaActual = dayjs().format('YYYY-MM-DD');
       await RegistroDiarioGalponService.upsertRegistroDiario(
         selectedGalpon.id,
@@ -79,44 +70,20 @@ const MortalidadForm = () => {
       setMessage({ type: 'success', text: 'Mortalidad registrada exitosamente.' });
       setCausaMortalidadCodigo('');
       setNumeroAvesMuertas('');
-    } catch (err: unknown) {
-      console.error('Error al registrar mortalidad:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
-      setMessage({ type: 'error', text: `Error al registrar mortalidad: ${errorMsg}` });
-    } finally {
-      setLoading(false);
-    }
+    }, 'No se pudo registrar la mortalidad. Intenta de nuevo.');
   };
 
-  if (loadingGalpones || loadingCausas) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (galponError) {
-    return <Alert severity="error">Error al cargar galpones: {galponError.message}</Alert>;
-  }
-
-  if (errorCausas) {
-    return <Alert severity="error" variant="outlined">Error al cargar causas de mortalidad: {errorCausas.message}</Alert>;
-  }
-
-  if (!selectedGalpon) {
-    return <Alert severity="info">Selecciona un galpon para registrar la mortalidad.</Alert>;
-  }
-
   return (
-    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Registrar Mortalidad Diaria
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        Galpon seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
-      </Typography>
-
+    <FormShell
+      title="Registrar Mortalidad Diaria"
+      galponLabel="registrar la mortalidad"
+      selectedGalpon={selectedGalpon}
+      loadingGalpones={loadingGalpones}
+      galponError={galponError}
+      extraLoading={loadingCausas}
+      extraError={errorCausas}
+      extraErrorLabel="Error al cargar causas de mortalidad"
+    >
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <TextField
           select
@@ -139,14 +106,14 @@ const MortalidadForm = () => {
         </TextField>
         <TextField
           id="numero-aves-muertas"
-          label="Numero de Aves Muertas"
+          label="Número de Aves Muertas"
           type="number"
           value={numeroAvesMuertas}
           onChange={(e) => setNumeroAvesMuertas(e.target.value === '' ? '' : Number(e.target.value))}
           fullWidth
           margin="normal"
           required
-          inputProps={{ min: 1, step: 1 }}
+          inputProps={{ min: 1, max: 10000, step: 1 }}
         />
         {message && (
           <Alert severity={message.type} sx={{ mt: 2 }}>
@@ -156,19 +123,9 @@ const MortalidadForm = () => {
         <Alert severity="warning" sx={{ mt: 2 }}>
           Antes de confirmar, valida la causa y el número de aves. Una vez registres la mortalidad, no podrás modificarla desde este formulario.
         </Alert>
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          fullWidth
-          sx={{ mt: 3, mb: 2 }}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : undefined}
-        >
-          {loading ? 'Registrando...' : 'Registrar mortalidad'}
-        </Button>
+        <SubmitButton loading={loading} label="Registrar mortalidad" />
       </Box>
-    </Paper>
+    </FormShell>
   );
 };
 

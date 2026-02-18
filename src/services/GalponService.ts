@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 import type { Galpon } from '../models/Galpon';
 
 const GalponService = {
@@ -14,7 +15,7 @@ const GalponService = {
       .eq('operario_id', operarioId);
 
     if (error) {
-      console.error('Error fetching assigned galpones:', error);
+      logServiceError('Error fetching assigned galpones:', error);
       throw error;
     }
 
@@ -33,7 +34,7 @@ const GalponService = {
       .select('*');
 
     if (error) {
-      console.error('Error fetching all galpones:', error);
+      logServiceError('Error fetching all galpones:', error);
       throw error;
     }
 

@@ -1,30 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  ListSubheader,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, ListSubheader, MenuItem, TextField } from '@mui/material';
 import dayjs from 'dayjs';
 import type { Alimento } from '../models/Alimento';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
+import { useFormSubmit } from '../hooks/useFormSubmit';
 import AlimentoService from '../services/AlimentoService';
 import RegistroDiarioGalponService from '../services/RegistroDiarioGalponService';
+import FormShell from './FormShell';
+import SubmitButton from './SubmitButton';
 
 const AlimentacionForm = () => {
   const { selectedGalpon, loading: loadingGalpones, error: galponError } = useSelectedGalpon();
+  const { loading, message, setMessage, handleSubmit: submitWithLoading } = useFormSubmit();
   const [productoAlimentoCodigo, setProductoAlimentoCodigo] = useState<number | ''>('');
   const [cantidadBultos, setCantidadBultos] = useState<number | ''>('');
   const [alimentos, setAlimentos] = useState<Alimento[]>([]);
-  const [loading, setLoading] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(true);
   const [errorProductos, setErrorProductos] = useState<Error | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     const fetchAlimentos = async () => {
@@ -56,7 +48,7 @@ const AlimentacionForm = () => {
     event.preventDefault();
 
     if (!selectedGalpon) {
-      setMessage({ type: 'error', text: 'No hay galpon seleccionado.' });
+      setMessage({ type: 'error', text: 'No hay galpón seleccionado.' });
       return;
     }
 
@@ -71,9 +63,7 @@ const AlimentacionForm = () => {
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
-    try {
+    await submitWithLoading(async () => {
       const fechaActual = dayjs().format('YYYY-MM-DD');
       await RegistroDiarioGalponService.upsertRegistroDiario(
         selectedGalpon.id,
@@ -83,47 +73,23 @@ const AlimentacionForm = () => {
           cantidad_alimento_bultos: cantidadBultosNum,
         }
       );
-      setMessage({ type: 'success', text: 'Alimentacion registrada exitosamente.' });
+      setMessage({ type: 'success', text: 'Alimentación registrada exitosamente.' });
       setProductoAlimentoCodigo('');
       setCantidadBultos('');
-    } catch (err: unknown) {
-      console.error('Error al registrar alimentacion:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
-      setMessage({ type: 'error', text: `Error al registrar alimentacion: ${errorMsg}` });
-    } finally {
-      setLoading(false);
-    }
+    }, 'No se pudo registrar la alimentación. Intenta de nuevo.');
   };
 
-  if (loadingGalpones || loadingProductos) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (galponError) {
-    return <Alert severity="error">Error al cargar galpones: {galponError.message}</Alert>;
-  }
-
-  if (errorProductos) {
-    return <Alert severity="error">Error al cargar alimentos: {errorProductos.message}</Alert>;
-  }
-
-  if (!selectedGalpon) {
-    return <Alert severity="info">Selecciona un galpon para registrar la alimentacion.</Alert>;
-  }
-
   return (
-    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Registrar Alimentacion Diaria
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        Galpon seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
-      </Typography>
-
+    <FormShell
+      title="Registrar Alimentación Diaria"
+      galponLabel="registrar la alimentación"
+      selectedGalpon={selectedGalpon}
+      loadingGalpones={loadingGalpones}
+      galponError={galponError}
+      extraLoading={loadingProductos}
+      extraError={errorProductos}
+      extraErrorLabel="Error al cargar alimentos"
+    >
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <TextField
           select
@@ -138,7 +104,7 @@ const AlimentacionForm = () => {
           <MenuItem value="">
             Selecciona un alimento
           </MenuItem>
-          {alimentosPorFabricante.map(([fabricanteNombre, alimentosDelFabricante]) => ([
+          {alimentosPorFabricante.flatMap(([fabricanteNombre, alimentosDelFabricante]) => [
             <ListSubheader key={`fab-${fabricanteNombre}`}>
               {fabricanteNombre}
             </ListSubheader>,
@@ -147,7 +113,7 @@ const AlimentacionForm = () => {
                 {alimento.descripcion}
               </MenuItem>
             )),
-          ]))}
+          ])}
         </TextField>
         <TextField
           id="cantidad-bultos"
@@ -158,7 +124,7 @@ const AlimentacionForm = () => {
           fullWidth
           margin="normal"
           required
-          inputProps={{ min: 0.01, step: 0.01 }}
+          inputProps={{ min: 0.01, max: 9999, step: 0.01 }}
         />
         {message && (
           <Alert severity={message.type} sx={{ mt: 2 }}>
@@ -166,23 +132,12 @@ const AlimentacionForm = () => {
           </Alert>
         )}
         <Alert severity="warning" sx={{ mt: 2 }}>
-          {'Antes de confirmar, revisa el tipo de alimento y la cantidad de bultos. Una vez registrada, no podr\u00e1s modificar el registro desde este formulario.'}
+          Antes de confirmar, revisa el tipo de alimento y la cantidad de bultos. Una vez registrada, no podrás modificar el registro desde este formulario.
         </Alert>
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          fullWidth
-          sx={{ mt: 3, mb: 2 }}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : undefined}
-        >
-          {loading ? 'Registrando...' : 'Registrar alimentaci\u00f3n'}
-        </Button>
+        <SubmitButton loading={loading} label="Registrar alimentación" />
       </Box>
-    </Paper>
+    </FormShell>
   );
 };
 
 export default AlimentacionForm;
-

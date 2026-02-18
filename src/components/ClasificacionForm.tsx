@@ -15,8 +15,10 @@ import { Plus, Trash2 } from 'lucide-react';
 import dayjs from 'dayjs';
 import type { Producto } from '../models/Producto';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
+import { useFormSubmit } from '../hooks/useFormSubmit';
 import ProduccionService from '../services/ProduccionService';
 import ProductoService from '../services/ProductoService';
+import SubmitButton from './SubmitButton';
 
 interface ClasificacionEntry {
   id: number;
@@ -26,12 +28,11 @@ interface ClasificacionEntry {
 
 const ClasificacionForm = () => {
   const { selectedGalpon, loading: loadingGalpones, error: galponError } = useSelectedGalpon();
+  const { loading, message, setMessage, handleSubmit: submitWithLoading } = useFormSubmit();
   const [entries, setEntries] = useState<ClasificacionEntry[]>([{ id: 1, producto_codigo: '', cantidad: '' }]);
   const [productosHuevo, setProductosHuevo] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(true);
   const [errorProductos, setErrorProductos] = useState<Error | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [nextEntryId, setNextEntryId] = useState(2);
   const [hasDailyClasificacion, setHasDailyClasificacion] = useState(false);
   const [loadingDailyCheck, setLoadingDailyCheck] = useState(true);
@@ -96,9 +97,8 @@ const ClasificacionForm = () => {
         } else {
           setHasDailyClasificacion(false);
         }
-      } catch (err) {
-        console.error('Error al cargar datos del galpon:', err);
-        setMessage({ type: 'error', text: 'Error al cargar datos. Recarga la pagina.' });
+      } catch {
+        setMessage({ type: 'error', text: 'Error al cargar datos. Recarga la página.' });
       } finally {
         setLoadingLastDate(false);
         setLoadingDailyCheck(false);
@@ -106,7 +106,7 @@ const ClasificacionForm = () => {
     };
 
     loadGalponData();
-  }, [selectedGalpon]);
+  }, [selectedGalpon, setMessage]);
 
   // Re-check cuando el usuario cambia la fecha manualmente
   useEffect(() => {
@@ -120,16 +120,15 @@ const ClasificacionForm = () => {
           selectedDate
         );
         setHasDailyClasificacion(exists);
-      } catch (err) {
-        console.error('Error al verificar clasificacion diaria existente:', err);
-        setMessage({ type: 'error', text: 'Error al verificar clasificacion diaria. Recarga la pagina.' });
+      } catch {
+        setMessage({ type: 'error', text: 'Error al verificar clasificación diaria. Recarga la página.' });
       } finally {
         setLoadingDailyCheck(false);
       }
     };
 
     checkExistingClasificacion();
-  }, [selectedGalpon, selectedDate]);
+  }, [selectedGalpon, selectedDate, setMessage]);
 
   const handleAddEntry = () => {
     setEntries((prevEntries) => [...prevEntries, { id: nextEntryId, producto_codigo: '', cantidad: '' }]);
@@ -145,22 +144,22 @@ const ClasificacionForm = () => {
     field: keyof ClasificacionEntry,
     value: number | ''
   ) => {
-    setEntries((prevEntries) => {
-      if (field === 'producto_codigo' && value !== '') {
-        const isDuplicate = prevEntries.some(
-          (entry) => entry.id !== id && entry.producto_codigo === value
-        );
-        if (isDuplicate) {
-          setMessage({ type: 'error', text: 'Este tipo de huevo ya fue seleccionado en otra linea.' });
-          return prevEntries;
-        }
-        setMessage(null);
+    if (field === 'producto_codigo' && value !== '') {
+      const isDuplicate = entries.some(
+        (entry) => entry.id !== id && entry.producto_codigo === value
+      );
+      if (isDuplicate) {
+        setMessage({ type: 'error', text: 'Este tipo de huevo ya fue seleccionado en otra línea.' });
+        return;
       }
+      setMessage(null);
+    }
 
-      return prevEntries.map((entry) => (
+    setEntries((prevEntries) =>
+      prevEntries.map((entry) => (
         entry.id === id ? { ...entry, [field]: value } : entry
-      ));
-    });
+      ))
+    );
   };
 
   const totalCantidadHuevos = useMemo(
@@ -172,12 +171,12 @@ const ClasificacionForm = () => {
     event.preventDefault();
 
     if (!selectedGalpon) {
-      setMessage({ type: 'error', text: 'No hay galpon seleccionado.' });
+      setMessage({ type: 'error', text: 'No hay galpón seleccionado.' });
       return;
     }
 
     if (!selectedDate || (minDate && selectedDate < minDate) || (maxDate && selectedDate > maxDate)) {
-      setMessage({ type: 'error', text: 'Selecciona una fecha valida dentro del rango permitido.' });
+      setMessage({ type: 'error', text: 'Selecciona una fecha válida dentro del rango permitido.' });
       return;
     }
 
@@ -185,19 +184,17 @@ const ClasificacionForm = () => {
       (entry) => entry.producto_codigo !== '' && entry.cantidad !== '' && Number(entry.cantidad) > 0
     );
     if (validEntries.length === 0) {
-      setMessage({ type: 'error', text: 'Agrega al menos una linea valida con cantidad mayor a 0.' });
+      setMessage({ type: 'error', text: 'Agrega al menos una línea válida con cantidad mayor a 0.' });
       return;
     }
 
     const hasNonInteger = validEntries.some((entry) => !Number.isInteger(Number(entry.cantidad)));
     if (hasNonInteger) {
-      setMessage({ type: 'error', text: 'Las cantidades deben ser numeros enteros.' });
+      setMessage({ type: 'error', text: 'Las cantidades deben ser números enteros.' });
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
-    try {
+    await submitWithLoading(async () => {
       await ProduccionService.addClasificacionBatch(
         selectedGalpon.id,
         selectedDate,
@@ -207,17 +204,11 @@ const ClasificacionForm = () => {
         }))
       );
 
-      setMessage({ type: 'success', text: 'Clasificacion registrada exitosamente.' });
+      setMessage({ type: 'success', text: 'Clasificación registrada exitosamente.' });
       setEntries([{ id: 1, producto_codigo: '', cantidad: '' }]);
       setNextEntryId(2);
       setHasDailyClasificacion(true);
-    } catch (err: unknown) {
-      console.error('Error al registrar clasificacion:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
-      setMessage({ type: 'error', text: `Error al registrar clasificacion: ${errorMsg}` });
-    } finally {
-      setLoading(false);
-    }
+    }, 'No se pudo registrar la clasificación. Intenta de nuevo.');
   };
 
   if (loadingGalpones || loadingProductos || loadingDailyCheck || loadingLastDate) {
@@ -231,7 +222,7 @@ const ClasificacionForm = () => {
   if (hasDailyClasificacion) {
     return (
       <Alert severity="info" sx={{ mt: 2 }}>
-        Ya existe un registro de clasificacion para el galpon {selectedGalpon?.nombre} en la fecha {selectedDate}. Solo se permite un registro por dia.
+        Ya existe un registro de clasificación para el galpón {selectedGalpon?.nombre} en la fecha {selectedDate}. Solo se permite un registro por día.
       </Alert>
     );
   }
@@ -239,7 +230,7 @@ const ClasificacionForm = () => {
   if (selectedGalpon && minDate && dayjs(minDate).isAfter(dayjs(), 'day')) {
     return (
       <Alert severity="warning" sx={{ mt: 2 }}>
-        No hay fechas disponibles para registrar clasificacion. El dia siguiente al ultimo registro ({dayjs(minDate).subtract(1, 'day').format('YYYY-MM-DD')}) es posterior a hoy.
+        No hay fechas disponibles para registrar clasificación. El día siguiente al último registro ({dayjs(minDate).subtract(1, 'day').format('YYYY-MM-DD')}) es posterior a hoy.
       </Alert>
     );
   }
@@ -253,16 +244,16 @@ const ClasificacionForm = () => {
   }
 
   if (!selectedGalpon) {
-    return <Alert severity="info">Selecciona un galpon para registrar la clasificacion.</Alert>;
+    return <Alert severity="info">Selecciona un galpón para registrar la clasificación.</Alert>;
   }
 
   return (
     <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 860, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Registrar Clasificacion de Huevos
+        Registrar Clasificación de Huevos
       </Typography>
       <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        Galpon seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
+        Galpón seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
       </Typography>
 
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
@@ -270,7 +261,7 @@ const ClasificacionForm = () => {
           <Grid size={12}>
             <TextField
               id="fecha-clasificacion"
-              label="Fecha de Clasificacion"
+              label="Fecha de Clasificación"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
@@ -322,7 +313,7 @@ const ClasificacionForm = () => {
                   onChange={(e) => handleChangeEntry(entry.id, 'cantidad', e.target.value === '' ? '' : Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 1, step: 1 }}
+                  inputProps={{ min: 1, max: 100000, step: 1 }}
                 />
               </Grid>
               <Grid size={2}>
@@ -342,10 +333,10 @@ const ClasificacionForm = () => {
           variant="outlined"
           sx={{ mt: 2 }}
         >
-          Anadir Linea
+          Añadir Línea
         </Button>
 
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }} key={totalCantidadHuevos}>
+        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
           Total de Huevos: <span>{totalCantidadHuevos}</span>
         </Typography>
 
@@ -357,21 +348,10 @@ const ClasificacionForm = () => {
         <Alert severity="warning" sx={{ mt: 2 }}>
           Antes de confirmar, revisa todas las líneas y cantidades. Una vez registres la clasificación, no podrás modificarla desde este formulario.
         </Alert>
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          fullWidth
-          sx={{ mt: 3, mb: 2 }}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : undefined}
-        >
-          {loading ? 'Registrando...' : 'Registrar clasificaci\u00f3n'}
-        </Button>
+        <SubmitButton loading={loading} label="Registrar clasificación" />
       </Box>
     </Paper>
   );
 };
 
 export default ClasificacionForm;
-

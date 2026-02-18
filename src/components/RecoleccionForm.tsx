@@ -1,39 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, TextField, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
+import { useFormSubmit } from '../hooks/useFormSubmit';
 import RecoleccionService from '../services/RecoleccionService';
+import FormShell from './FormShell';
+import SubmitButton from './SubmitButton';
 
 const RecoleccionForm = () => {
   const { selectedGalpon, loading: loadingGalpones, error: galponError } = useSelectedGalpon();
+  const { loading, message, setMessage, handleSubmit: submitWithLoading } = useFormSubmit();
   const [nextNumeroSecuencia, setNextNumeroSecuencia] = useState<number | null>(null);
-  const [loadingNextNumeroSecuencia, setLoadingNextNumeroSecuencia] = useState(true);
+  const [loadingRecoleccionData, setLoadingRecoleccionData] = useState(true);
   const [totalHuevosRecolectados, setTotalHuevosRecolectados] = useState<number | null>(null);
-  const [loadingTotalHuevos, setLoadingTotalHuevos] = useState(true);
   const [cantidadHuevos, setCantidadHuevos] = useState<number | ''>('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     const fetchRecoleccionData = async () => {
       if (!selectedGalpon) {
         setNextNumeroSecuencia(null);
-        setLoadingNextNumeroSecuencia(false);
         setTotalHuevosRecolectados(null);
-        setLoadingTotalHuevos(false);
+        setLoadingRecoleccionData(false);
         return;
       }
 
-      setLoadingNextNumeroSecuencia(true);
-      setLoadingTotalHuevos(true);
+      setLoadingRecoleccionData(true);
       try {
         const fechaActual = dayjs().format('YYYY-MM-DD');
         const [nextSeq, totalHuevos] = await Promise.all([
@@ -42,23 +33,21 @@ const RecoleccionForm = () => {
         ]);
         setNextNumeroSecuencia(nextSeq);
         setTotalHuevosRecolectados(totalHuevos);
-      } catch (err) {
-        console.error('Error al obtener datos de recoleccion:', err);
-        setMessage({ type: 'error', text: 'Error al cargar los datos de recoleccion. Recarga la pagina.' });
+      } catch {
+        setMessage({ type: 'error', text: 'Error al cargar los datos de recolección. Recarga la página.' });
       } finally {
-        setLoadingNextNumeroSecuencia(false);
-        setLoadingTotalHuevos(false);
+        setLoadingRecoleccionData(false);
       }
     };
 
     fetchRecoleccionData();
-  }, [selectedGalpon]);
+  }, [selectedGalpon, setMessage]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!selectedGalpon) {
-      setMessage({ type: 'error', text: 'No hay galpon seleccionado.' });
+      setMessage({ type: 'error', text: 'No hay galpón seleccionado.' });
       return;
     }
 
@@ -72,14 +61,12 @@ const RecoleccionForm = () => {
     ) {
       setMessage({
         type: 'error',
-        text: 'Ingresa una cantidad entera valida mayor a 0 y espera a que se cargue el momento de recoleccion.',
+        text: 'Ingresa una cantidad entera válida mayor a 0 y espera a que se cargue el momento de recolección.',
       });
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
-    try {
+    await submitWithLoading(async () => {
       const fechaActual = dayjs().format('YYYY-MM-DD');
       await RecoleccionService.addRecoleccion(
         selectedGalpon.id,
@@ -88,7 +75,7 @@ const RecoleccionForm = () => {
         cantidadHuevosNum
       );
 
-      setMessage({ type: 'success', text: 'Recoleccion registrada exitosamente.' });
+      setMessage({ type: 'success', text: 'Recolección registrada exitosamente.' });
       setCantidadHuevos('');
 
       const [newNextSeq, newTotalHuevos] = await Promise.all([
@@ -97,46 +84,24 @@ const RecoleccionForm = () => {
       ]);
       setNextNumeroSecuencia(newNextSeq);
       setTotalHuevosRecolectados(newTotalHuevos);
-    } catch (err: unknown) {
-      console.error('Error al registrar recoleccion:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Intenta de nuevo.';
-      setMessage({ type: 'error', text: `Error al registrar recoleccion: ${errorMsg}` });
-    } finally {
-      setLoading(false);
-    }
+    }, 'No se pudo registrar la recolección. Intenta de nuevo.');
   };
 
-  if (loadingGalpones || loadingNextNumeroSecuencia || loadingTotalHuevos) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (galponError) {
-    return <Alert severity="error">Error al cargar galpones: {galponError.message}</Alert>;
-  }
-
-  if (!selectedGalpon) {
-    return <Alert severity="info">Selecciona un galpon para registrar la recoleccion.</Alert>;
-  }
-
   return (
-    <Paper className="premium-fade-up" sx={{ p: 2.5, maxWidth: 560, mx: 'auto', mt: 1.5, borderRadius: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Registrar Recoleccion de Huevos
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" mb={2}>
-        Galpon seleccionado: {selectedGalpon.nombre} (ID: {selectedGalpon.id})
-      </Typography>
-
+    <FormShell
+      title="Registrar Recolección de Huevos"
+      galponLabel="registrar la recolección"
+      selectedGalpon={selectedGalpon}
+      loadingGalpones={loadingGalpones}
+      galponError={galponError}
+      extraLoading={loadingRecoleccionData}
+    >
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, mb: 1 }}>
-          Momento de Recoleccion actual: <strong>{nextNumeroSecuencia}</strong>
+          Momento de Recolección actual: <strong>{nextNumeroSecuencia}</strong>
         </Typography>
         <Typography variant="caption" display="block" sx={{ mb: 2 }} color="text.secondary">
-          El sistema asigna automaticamente el siguiente momento de recoleccion para hoy.
+          El sistema asigna automáticamente el siguiente momento de recolección para hoy.
         </Typography>
         {totalHuevosRecolectados !== null && (
           <Alert severity="info" sx={{ mb: 2 }}>
@@ -152,7 +117,7 @@ const RecoleccionForm = () => {
           fullWidth
           margin="normal"
           required
-          inputProps={{ min: 1, step: 1 }}
+          inputProps={{ min: 1, max: 100000, step: 1 }}
         />
         {message && (
           <Alert severity={message.type} sx={{ mt: 2 }}>
@@ -162,19 +127,9 @@ const RecoleccionForm = () => {
         <Alert severity="warning" sx={{ mt: 2 }}>
           Antes de confirmar, revisa la cantidad. Una vez registres la recolección, no podrás modificarla desde este formulario.
         </Alert>
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          fullWidth
-          sx={{ mt: 3, mb: 2 }}
-          disabled={loading || nextNumeroSecuencia === null}
-          startIcon={loading ? <CircularProgress size={20} /> : undefined}
-        >
-          {loading ? 'Registrando...' : 'Registrar recolección'}
-        </Button>
+        <SubmitButton loading={loading} label="Registrar recolección" disabled={nextNumeroSecuencia === null} />
       </Box>
-    </Paper>
+    </FormShell>
   );
 };
 

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 
 const ProduccionService = {
   /**
@@ -26,7 +27,7 @@ const ProduccionService = {
       .select();
 
     if (error) {
-      console.error('Error al registrar clasificación en lote:', error);
+      logServiceError('Error al registrar clasificación en lote:', error);
       throw error;
     }
     return data;
@@ -48,7 +49,7 @@ const ProduccionService = {
       .limit(1);
 
     if (error) {
-      console.error('Error al obtener el siguiente número de secuencia:', error);
+      logServiceError('Error al obtener el siguiente número de secuencia:', error);
       throw error;
     }
 
@@ -72,7 +73,7 @@ const ProduccionService = {
       .eq('fecha', fecha);
 
     if (error) {
-      console.error('Error al verificar clasificaciones diarias existentes:', error);
+      logServiceError('Error al verificar clasificaciones diarias existentes:', error);
       throw error;
     }
 
@@ -84,6 +85,21 @@ const ProduccionService = {
    * @param galpon_id El ID del galpón.
    * @returns Una promesa que resuelve con la fecha del último registro (YYYY-MM-DD) o null si no hay registros.
    */
+  async getClasificacionesPorFecha(galpon_id: number, fecha: string) {
+    const { data, error } = await supabase
+      .from('produccion')
+      .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha)
+      .order('numero_secuencia', { ascending: true });
+
+    if (error) {
+      logServiceError('Error al obtener clasificaciones por fecha:', error);
+      throw error;
+    }
+    return data ?? [];
+  },
+
   async getLastProduccionDate(galpon_id: number): Promise<string | null> {
     const { data, error } = await supabase
       .from('produccion')
@@ -93,7 +109,7 @@ const ProduccionService = {
       .limit(1);
 
     if (error) {
-      console.error('Error al obtener la fecha del último registro de producción:', error);
+      logServiceError('Error al obtener la fecha del último registro de producción:', error);
       throw error;
     }
 

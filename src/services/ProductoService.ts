@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 import type { Producto } from '../models/Producto';
 import type { UnidadMedida } from '../models/UnidadMedida';
 
@@ -13,7 +14,7 @@ const ProductoService = {
       .select('*'); // Selecciona todos los campos de la tabla productos
 
     if (error) {
-      console.error('Error al obtener productos:', error);
+      logServiceError('Error al obtener productos:', error);
       throw new Error('No se pudieron obtener los productos.');
     }
     return data as Producto[];
@@ -31,7 +32,7 @@ const ProductoService = {
       .select('id, codigo, descripcion, unidad_medida_codigo'); // Select all fields including the generated codigo
 
     if (error) {
-      console.error('Error al crear producto:', error);
+      logServiceError('Error al crear producto:', error);
       throw new Error('No se pudo crear el producto.');
     }
     return data[0] as Producto;
@@ -47,7 +48,7 @@ const ProductoService = {
       .select('*'); // Selecciona todos los campos de la tabla unidades_medida
 
     if (error) {
-      console.error('Error al obtener unidades de medida:', error);
+      logServiceError('Error al obtener unidades de medida:', error);
       throw new Error('No se pudieron obtener las unidades de medida.');
     }
     return data as UnidadMedida[];

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logServiceError } from './supabaseErrors';
 
 interface CausaMortalidad {
   codigo: string;
@@ -25,10 +26,25 @@ const RegistroDiarioGalponService = {
       .select();
 
     if (error) {
-      console.error('Error upserting daily record:', error);
+      logServiceError('Error upserting daily record:', error);
       throw error;
     }
     return result;
+  },
+
+  async getRegistroDiario(galpon_id: number, fecha: string) {
+    const { data, error } = await supabase
+      .from('registro_diario_galpon')
+      .select('*')
+      .eq('galpon_id', galpon_id)
+      .eq('fecha', fecha)
+      .maybeSingle();
+
+    if (error) {
+      logServiceError('Error al obtener registro diario:', error);
+      throw error;
+    }
+    return data;
   },
 
   async getCausasMortalidad(): Promise<CausaMortalidad[]> {
@@ -37,7 +53,7 @@ const RegistroDiarioGalponService = {
       .select('*');
 
     if (error) {
-      console.error('Error fetching mortality causes:', error);
+      logServiceError('Error fetching mortality causes:', error);
       throw error;
     }
     return data as CausaMortalidad[];

@@ -56,7 +56,7 @@ function getDaysAgoISO(days: number): string {
 import type { Produccion } from '../models/Produccion';
 
 
-type CorteRow = { id: number; numero_aves: number; galpon_id: number; fecha_inicio: string };
+type CorteRow = { id: number; numero_aves_total: number; fecha_inicio: string };
 
 // --- Derivar datos desde 2 consultas ---
 function deriveKpis(
@@ -66,7 +66,7 @@ function deriveKpis(
   today: { start: string; end: string },
   sevenDaysAgo: string
 ): KpiSummary {
-  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
+  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves_total, 0);
 
   // Helper to identify product types
   const isEggProduct = (codigo: number) => {
@@ -167,13 +167,14 @@ function deriveClassification(produccion: Produccion[], productMap: Map<number, 
 
 function deriveAlerts(
   cortes: CorteRow[],
+  corteGalponesMap: Map<number, number[]>,
   produccion: Produccion[],
   productMap: Map<number, Producto>,
   today: { start: string; end: string },
   sevenDaysAgo: string
 ): DashboardAlert[] {
   const alerts: DashboardAlert[] = [];
-  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves, 0);
+  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves_total, 0);
 
   const todayRows = produccion.filter((p) => p.fecha >= today.start && p.fecha < today.end);
   const weekRows = produccion.filter((p) => p.fecha >= sevenDaysAgo);
@@ -190,7 +191,9 @@ function deriveAlerts(
   // Sin datos hoy por corte
   const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
   for (const corte of cortes) {
-    if (!galponesConDatosHoy.has(corte.galpon_id)) {
+    const corteGalponIds = corteGalponesMap.get(corte.id) ?? [];
+    const sinDatos = corteGalponIds.some((gid) => !galponesConDatosHoy.has(gid));
+    if (corteGalponIds.length > 0 && sinDatos) {
       alerts.push({
         id: `sin-datos-${corte.id}`,
         severity: 'info',
@@ -201,8 +204,9 @@ function deriveAlerts(
 
   // Mortalidad alta (muertes hoy > 2x promedio diario últimos 7 días)
   for (const corte of cortes) {
-    const corteProdMortality = weekRows.filter((p) => p.galpon_id === corte.galpon_id && isMortalityProduct(p.producto_codigo));
-    if (corteProdMortality.length === 0) continue; // No mortality records for this corte in the week
+    const corteGalponIds = new Set(corteGalponesMap.get(corte.id) ?? []);
+    const corteProdMortality = weekRows.filter((p) => corteGalponIds.has(p.galpon_id) && isMortalityProduct(p.producto_codigo));
+    if (corteProdMortality.length === 0) continue;
 
     const todayMortality = corteProdMortality
       .filter((p) => p.fecha >= today.start && p.fecha < today.end)
@@ -271,16 +275,33 @@ const DashboardService = {
     // 1. Consultar cortes activos
     const { data: cortes, error: cortesError } = await supabase
       .from('cortes')
-      .select('id, numero_aves, galpon_id, fecha_inicio')
+      .select('id, numero_aves_total, fecha_inicio')
       .eq('estado', 'activo');
 
     if (cortesError || !cortes || cortes.length === 0) {
       return EMPTY_DASHBOARD;
     }
 
-    const galponIds = cortes.map((c) => c.galpon_id);
+    const corteIds = cortes.map((c) => c.id);
 
-    // 2. Consultar toda la producción de los últimos 30 días (por galpon_id)
+    // 2a. Consultar galpon_ids desde corte_galpones
+    const { data: corteGalponesData, error: cgError } = await supabase
+      .from('corte_galpones')
+      .select('corte_id, galpon_id')
+      .in('corte_id', corteIds);
+
+    if (cgError) {
+      console.error('Error al obtener corte_galpones:', cgError);
+      throw new Error('No se pudieron obtener los galpones de los cortes.');
+    }
+
+    const galponIds = [...new Set((corteGalponesData ?? []).map((cg) => cg.galpon_id))];
+
+    if (galponIds.length === 0) {
+      return EMPTY_DASHBOARD;
+    }
+
+    // 2b. Consultar toda la producción de los últimos 30 días (por galpon_id)
     const { data: produccionData, error: produccionError } = await supabase
       .from('produccion')
       .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
@@ -310,12 +331,20 @@ const DashboardService = {
 
 
 
-    // 4. Derivar todos los datos desde las consultas
+    // 4. Construir mapa corte -> galpon_ids para alertas
+    const corteGalponesMap = new Map<number, number[]>();
+    for (const cg of corteGalponesData ?? []) {
+      const current = corteGalponesMap.get(cg.corte_id) ?? [];
+      current.push(cg.galpon_id);
+      corteGalponesMap.set(cg.corte_id, current);
+    }
+
+    // 5. Derivar todos los datos desde las consultas
     return {
       kpis: deriveKpis(cortes, produccionRows, productMap, today, sevenDaysAgo),
       chart: deriveChart(produccionRows, productMap),
       classification: deriveClassification(produccionRows, productMap, today),
-      alerts: deriveAlerts(cortes, produccionRows, productMap, today, sevenDaysAgo),
+      alerts: deriveAlerts(cortes, corteGalponesMap, produccionRows, productMap, today, sevenDaysAgo),
     };
   },
 };

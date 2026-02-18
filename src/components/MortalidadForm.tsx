@@ -58,8 +58,9 @@ const MortalidadForm = () => {
       || numeroAvesMuertas === ''
       || !Number.isFinite(numeroAvesMuertasNum)
       || numeroAvesMuertasNum <= 0
+      || !Number.isInteger(numeroAvesMuertasNum)
     ) {
-      setMessage({ type: 'error', text: 'Selecciona una causa e ingresa un numero de aves mayor a 0.' });
+      setMessage({ type: 'error', text: 'Selecciona una causa e ingresa un numero entero de aves mayor a 0.' });
       return;
     }
 

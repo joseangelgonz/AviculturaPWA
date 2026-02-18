@@ -57,52 +57,62 @@ const ClasificacionForm = () => {
   }, []);
 
   useEffect(() => {
-    const loadLastProduccionDate = async () => {
+    const loadGalponData = async () => {
       if (!selectedGalpon) {
         setMinDate('');
         setSelectedDate('');
-        setLoadingLastDate(false);
-        return;
-      }
-
-      setLoadingLastDate(true);
-      try {
-        const lastDate = await ProduccionService.getLastProduccionDate(selectedGalpon.id);
-        const fechaActual = dayjs().format('YYYY-MM-DD');
-
-        if (lastDate) {
-          const nextDay = dayjs(lastDate).add(1, 'day').format('YYYY-MM-DD');
-          setMinDate(nextDay);
-          if (dayjs(nextDay).isAfter(dayjs(), 'day')) {
-            setSelectedDate('');
-          } else {
-            setSelectedDate(nextDay);
-          }
-        } else {
-          setMinDate(fechaActual);
-          setSelectedDate(fechaActual);
-        }
-
-        setMaxDate(fechaActual);
-      } catch (err) {
-        console.error('Error al obtener la fecha del ultimo registro:', err);
-        setMessage({ type: 'error', text: 'Error al cargar datos. Recarga la pagina.' });
-      } finally {
-        setLoadingLastDate(false);
-      }
-    };
-
-    loadLastProduccionDate();
-  }, [selectedGalpon]);
-
-  useEffect(() => {
-    const checkExistingClasificacion = async () => {
-      if (!selectedGalpon || !selectedDate) {
         setHasDailyClasificacion(false);
+        setLoadingLastDate(false);
         setLoadingDailyCheck(false);
         return;
       }
 
+      setLoadingLastDate(true);
+      setLoadingDailyCheck(true);
+      try {
+        const lastDate = await ProduccionService.getLastProduccionDate(selectedGalpon.id);
+        const fechaActual = dayjs().format('YYYY-MM-DD');
+        let computedDate = '';
+
+        if (lastDate) {
+          const nextDay = dayjs(lastDate).add(1, 'day').format('YYYY-MM-DD');
+          setMinDate(nextDay);
+          computedDate = dayjs(nextDay).isAfter(dayjs(), 'day') ? '' : nextDay;
+        } else {
+          setMinDate(fechaActual);
+          computedDate = fechaActual;
+        }
+
+        setSelectedDate(computedDate);
+        setMaxDate(fechaActual);
+        setLoadingLastDate(false);
+
+        if (computedDate) {
+          const exists = await ProduccionService.checkDailyClasificacionExists(
+            selectedGalpon.id,
+            computedDate
+          );
+          setHasDailyClasificacion(exists);
+        } else {
+          setHasDailyClasificacion(false);
+        }
+      } catch (err) {
+        console.error('Error al cargar datos del galpon:', err);
+        setMessage({ type: 'error', text: 'Error al cargar datos. Recarga la pagina.' });
+      } finally {
+        setLoadingLastDate(false);
+        setLoadingDailyCheck(false);
+      }
+    };
+
+    loadGalponData();
+  }, [selectedGalpon]);
+
+  // Re-check cuando el usuario cambia la fecha manualmente
+  useEffect(() => {
+    if (!selectedGalpon || !selectedDate) return;
+
+    const checkExistingClasificacion = async () => {
       setLoadingDailyCheck(true);
       try {
         const exists = await ProduccionService.checkDailyClasificacionExists(
@@ -166,8 +176,8 @@ const ClasificacionForm = () => {
       return;
     }
 
-    if (!selectedDate) {
-      setMessage({ type: 'error', text: 'Selecciona una fecha valida.' });
+    if (!selectedDate || (minDate && selectedDate < minDate) || (maxDate && selectedDate > maxDate)) {
+      setMessage({ type: 'error', text: 'Selecciona una fecha valida dentro del rango permitido.' });
       return;
     }
 
@@ -176,6 +186,12 @@ const ClasificacionForm = () => {
     );
     if (validEntries.length === 0) {
       setMessage({ type: 'error', text: 'Agrega al menos una linea valida con cantidad mayor a 0.' });
+      return;
+    }
+
+    const hasNonInteger = validEntries.some((entry) => !Number.isInteger(Number(entry.cantidad)));
+    if (hasNonInteger) {
+      setMessage({ type: 'error', text: 'Las cantidades deben ser numeros enteros.' });
       return;
     }
 

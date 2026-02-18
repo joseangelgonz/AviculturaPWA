@@ -36,10 +36,11 @@ const RecoleccionForm = () => {
       setLoadingTotalHuevos(true);
       try {
         const fechaActual = dayjs().format('YYYY-MM-DD');
-        const nextSeq = await RecoleccionService.getNextNumeroSecuencia(selectedGalpon.id, fechaActual);
+        const [nextSeq, totalHuevos] = await Promise.all([
+          RecoleccionService.getNextNumeroSecuencia(selectedGalpon.id, fechaActual),
+          RecoleccionService.getTotalHuevosRecoletados(selectedGalpon.id, fechaActual),
+        ]);
         setNextNumeroSecuencia(nextSeq);
-
-        const totalHuevos = await RecoleccionService.getTotalHuevosRecoletados(selectedGalpon.id, fechaActual);
         setTotalHuevosRecolectados(totalHuevos);
       } catch (err) {
         console.error('Error al obtener datos de recoleccion:', err);
@@ -66,11 +67,12 @@ const RecoleccionForm = () => {
       cantidadHuevos === ''
       || !Number.isFinite(cantidadHuevosNum)
       || cantidadHuevosNum <= 0
+      || !Number.isInteger(cantidadHuevosNum)
       || nextNumeroSecuencia === null
     ) {
       setMessage({
         type: 'error',
-        text: 'Ingresa una cantidad valida mayor a 0 y espera a que se cargue el momento de recoleccion.',
+        text: 'Ingresa una cantidad entera valida mayor a 0 y espera a que se cargue el momento de recoleccion.',
       });
       return;
     }

@@ -75,6 +75,7 @@ export type Database = {
       alimentos: {
         Row: {
           activo: boolean
+          categoria: string | null
           codigo: number
           created_at: string
           descripcion: string
@@ -82,6 +83,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          categoria?: string | null
           codigo?: number
           created_at?: string
           descripcion: string
@@ -89,6 +91,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          categoria?: string | null
           codigo?: number
           created_at?: string
           descripcion?: string

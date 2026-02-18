@@ -53,7 +53,7 @@ const ProduccionService = {
     }
 
     if (data && data.length > 0) {
-      return (data[0].numero_secuencia as number) + 1;
+      return data[0].numero_secuencia + 1;
     }
     return 1; // Si no hay registros, empieza con 1
   },
@@ -67,7 +67,7 @@ const ProduccionService = {
   async checkDailyClasificacionExists(galpon_id: number, fecha: string): Promise<boolean> {
     const { count, error } = await supabase
       .from('produccion')
-      .select('*', { count: 'exact' }) // Select count of id column
+      .select('galpon_id', { count: 'exact', head: true })
       .eq('galpon_id', galpon_id)
       .eq('fecha', fecha);
 
@@ -98,7 +98,7 @@ const ProduccionService = {
     }
 
     if (data && data.length > 0) {
-      return data[0].fecha as string;
+      return data[0].fecha;
     }
     return null;
   },

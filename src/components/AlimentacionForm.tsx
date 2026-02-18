@@ -45,9 +45,9 @@ const AlimentacionForm = () => {
   const alimentosPorFabricante = useMemo(() => {
     const grouped = new Map<string, Alimento[]>();
     for (const alimento of alimentos) {
-      const group = grouped.get(alimento.fabricanteNombre) ?? [];
+      const group = grouped.get(alimento.fabricante_nombre) ?? [];
       group.push(alimento);
-      grouped.set(alimento.fabricanteNombre, group);
+      grouped.set(alimento.fabricante_nombre, group);
     }
     return Array.from(grouped.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [alimentos]);

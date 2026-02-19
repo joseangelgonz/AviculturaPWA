@@ -35,7 +35,7 @@ const CorteService = {
   },
 
   async createCorte(payload: CreateCortePayload): Promise<{ corte_id: number }> {
-    const { data, error } = await supabase.rpc('crear_corte_con_galpones', {
+    const { data, error } = await supabase.rpc('create_corte_with_galpones', {
       p_fecha_inicio: payload.fecha_inicio,
       p_tipo_ave: payload.tipo_ave,
       p_notas: payload.notas,
@@ -45,6 +45,9 @@ const CorteService = {
 
     if (error) throw error;
 
+    if (typeof data === 'number') {
+      return { corte_id: data };
+    }
     return data as { corte_id: number };
   },
 

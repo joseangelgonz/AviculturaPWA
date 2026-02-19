@@ -151,12 +151,12 @@ function deriveKpis(
     ? Math.round((todayProduction / totalAves) * 1000) / 10
     : null;
 
-  // Weekly Mortality (from registro_diario_galpon)
+  // Weekly Mortality (from registro_mortalidad aggregated by galpon/fecha)
   const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
   const weeklyMortalityTotal = weekDailyRecords.reduce((sum, r) => sum + (r.numero_aves_muertas || 0), 0);
   const weeklyMortality = weeklyMortalityTotal > 0 ? weeklyMortalityTotal : null;
 
-  // FCR Calculation (Feed Conversion Ratio) from registro_diario_galpon
+  // FCR Calculation (Feed Conversion Ratio) from registro_alimentacion_galpon
   let fcr: number | null = null;
   const totalAlimentoBultos = weekDailyRecords.reduce((sum, r) => sum + (r.cantidad_alimento_bultos || 0), 0);
   if (totalAlimentoBultos > 0) {
@@ -227,7 +227,7 @@ function deriveAlerts(
     }
   }
 
-  // Mortalidad alta (from registro_diario_galpon)
+  // Mortalidad alta (from registro_mortalidad aggregated by galpon/fecha)
   const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
   for (const corte of cortes) {
     const corteGalponIds = new Set(corteGalponesMap.get(corte.id) ?? []);

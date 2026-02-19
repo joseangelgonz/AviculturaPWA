@@ -563,6 +563,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_corte_with_galpones: {
+        Args: {
+          p_fecha_inicio: string
+          p_tipo_ave: string
+          p_notas: string
+          p_numero_aves_total: number
+          p_galpones: Json
+        }
+        Returns: number
+      }
       crear_corte_con_galpones: {
         Args: {
           p_fecha_inicio: string

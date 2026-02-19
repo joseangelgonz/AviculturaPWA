@@ -128,7 +128,9 @@ const RegistroDiarioGalponService = {
     );
 
     return {
-      ...feedData,
+      galpon_id,
+      fecha,
+      ...(feedData ?? {}),
       numero_aves_muertas: totalAvesMuertas,
     };
   },

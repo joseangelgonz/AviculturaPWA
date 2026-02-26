@@ -80,59 +80,10 @@ const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        py: collapsed ? 1.5 : 1.25,
+        py: collapsed ? 1 : 1,
         px: collapsed ? 0 : undefined,
       }}
     >
-      <Box
-        sx={{
-          px: collapsed ? 1.5 : 2.25,
-          py: 1.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          gap: collapsed ? 0 : 1.25,
-        }}
-      >
-        <Box
-          sx={{
-            width: 28,
-            height: 28,
-            borderRadius: 'var(--ds-radius-md, 8px)',
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            display: 'grid',
-            placeItems: 'center',
-            fontWeight: 700,
-            fontSize: '0.8rem',
-            letterSpacing: '-0.01em',
-          }}
-        >
-          A
-        </Box>
-        {!collapsed && (
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: '1rem',
-                color: 'text.primary',
-                letterSpacing: '-0.01em',
-                lineHeight: 1.1,
-              }}
-            >
-              Avicultura
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.72rem' }}>
-              Control Center
-            </Typography>
-          </Box>
-        )}
-      </Box>
-
-      {!collapsed && <Divider sx={{ mx: 1.75, my: 1 }} />}
-
       <List
         disablePadding
         dense
@@ -141,32 +92,13 @@ const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
           minHeight: 0,
           overflow: 'auto',
           py: 0,
-          px: collapsed ? 0 : 1,
+          px: 0,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: collapsed ? 'center' : 'stretch',
+          alignItems: 'stretch',
           '& > *': { flex: '0 0 auto' },
         }}
       >
-        {!collapsed && (
-          <Typography
-            variant="body2"
-            component="li"
-            sx={{
-              listStyle: 'none',
-              px: 1.5,
-              pt: 0.5,
-              pb: 0.75,
-              color: 'text.secondary',
-              textTransform: 'uppercase',
-              fontSize: '0.69rem',
-              letterSpacing: '0.08em',
-              fontWeight: 700,
-            }}
-          >
-            Navegación
-          </Typography>
-        )}
         {visibleItems.map((item) => {
           const selected = item.path === '/'
             ? location.pathname === '/'
@@ -181,15 +113,31 @@ const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
               sx={{
                 margin: 0,
                 marginBottom: 4,
-                padding: '8px 12px',
                 minHeight: 36,
                 maxHeight: 36,
                 height: 36,
-                px: collapsed ? 1.5 : 1.5,
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                borderRadius: collapsed ? 'var(--ds-radius-md, 8px)' : undefined,
-                mx: collapsed ? 0.5 : 0,
+                py: 1,
+                px: collapsed ? 0.75 : 1.5,
+                justifyContent: 'flex-start',
+                borderRadius: 'var(--ds-radius-md, 8px)',
+                mx: 1,
                 flexShrink: 0,
+                width: 'auto',
+                '&.Mui-selected': {
+                  bgcolor: collapsed ? 'transparent' : 'action.selected',
+                },
+                '&.Mui-selected:hover': {
+                  bgcolor: collapsed ? 'transparent' : 'action.selected',
+                },
+                ...(collapsed && {
+                  '&.Mui-selected .MuiListItemIcon-root': {
+                    bgcolor: 'action.selected',
+                    borderRadius: 'var(--ds-radius-md, 8px)',
+                  },
+                  '&.Mui-selected:hover .MuiListItemIcon-root': {
+                    bgcolor: 'action.selected',
+                  },
+                }),
               }}
               title={collapsed ? item.label : undefined}
             >
@@ -197,7 +145,11 @@ const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
                 sx={{
                   mr: collapsed ? 0 : 1.2,
                   justifyContent: 'center',
-                  minWidth: collapsed ? 'auto' : 36,
+                  minWidth: collapsed ? 40 : 36,
+                  width: collapsed ? 40 : 36,
+                  height: collapsed ? 36 : 'auto',
+                  display: collapsed ? 'grid' : undefined,
+                  placeItems: collapsed ? 'center' : undefined,
                   color: selected ? 'primary.main' : 'text.secondary',
                   '& > svg': { fontSize: 20 },
                 }}

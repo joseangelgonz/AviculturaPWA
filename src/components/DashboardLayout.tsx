@@ -16,7 +16,7 @@ import Sidebar from './Sidebar';
 import { useAuth } from '../AuthContext';
 
 const DRAWER_WIDTH = 272;
-const DRAWER_WIDTH_COLLAPSED = 64;
+const DRAWER_WIDTH_COLLAPSED = 56;
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Panel',
@@ -35,24 +35,12 @@ const PAGE_TITLES: Record<string, string> = {
 
 const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
-  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const location = useLocation();
   const { auth, signOut } = useAuth();
 
   const desktopDrawerWidth = sidebarExpanded ? DRAWER_WIDTH : DRAWER_WIDTH_COLLAPSED;
-
-  const handleMenuButtonClick = () => {
-    setSidebarPinned((p) => {
-      if (!p) {
-        setSidebarExpanded(true);
-        return true;
-      }
-      setSidebarExpanded(false);
-      return false;
-    });
-  };
 
   const userEmail =
     auth.status === 'authenticated' ? auth.session.user.email : '';
@@ -79,9 +67,10 @@ const DashboardLayout = () => {
       <AppBar
         position="fixed"
         sx={{
-          width: { md: `calc(100% - ${desktopDrawerWidth}px)` },
-          ml: { md: `${desktopDrawerWidth}px` },
+          width: '100%',
+          ml: 0,
           boxShadow: 'none',
+          zIndex: (theme) => theme.zIndex.drawer + 1,
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {
               easing: theme.transitions.easing.sharp,
@@ -89,94 +78,149 @@ const DashboardLayout = () => {
             }),
         }}
       >
-        <Toolbar sx={{ minHeight: 60, px: { xs: 1.5, sm: 2.5 } }}>
-          <IconButton
-            edge="start"
-            onClick={() => setMobileOpen(true)}
+        <Toolbar
+          sx={{
+            minHeight: 60,
+            px: { xs: 1.5, sm: 2.5 },
+          }}
+        >
+          <Box
             sx={{
-              mr: 2,
-              display: { md: 'none' },
-              color: 'text.primary',
-              width: 40,
-              minWidth: 40,
-              height: 40,
-              minHeight: 40,
-              padding: 0,
-              borderRadius: 'var(--ds-radius-sm, 6px)',
-              '& .MuiTouchRipple-root': { borderRadius: 'var(--ds-radius-sm, 6px)' },
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              width: '100%',
             }}
           >
-            <Menu size={24} strokeWidth={1.75} aria-hidden />
-          </IconButton>
-          <IconButton
-            color="inherit"
-            aria-label={sidebarPinned ? 'Soltar menú (volver a ocultar al quitar el cursor)' : 'Fijar menú (mantener abierto)'}
-            onClick={handleMenuButtonClick}
-            edge="start"
-            sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'block' },
-              color: 'text.primary',
-              width: 40,
-              minWidth: 40,
-              height: 40,
-              minHeight: 40,
-              padding: 0,
-              borderRadius: 'var(--ds-radius-sm, 6px)',
-              '& .MuiTouchRipple-root': { borderRadius: 'var(--ds-radius-sm, 6px)' },
-              ...(sidebarPinned && { bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' } }),
-            }}
-          >
-            <Menu size={24} strokeWidth={1.75} aria-hidden />
-          </IconButton>
-          <Typography
-            variant="h6"
-            noWrap
-            sx={{ flexGrow: 1, fontSize: '0.86rem', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'text.secondary' }}
-          >
-            {pageTitle}
-          </Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Chip
-              label={roleLabel}
-              size="small"
+            <Box
               sx={{
-                display: { xs: 'none', sm: 'inline-flex' },
-                bgcolor: 'rgba(75, 90, 40, 0.1)',
-                color: 'primary.dark',
-                border: 'none',
-                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.25,
+                minWidth: 0,
               }}
-            />
-            {userEmail && (
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 'var(--ds-radius-sm, 6px)',
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                A
+              </Box>
+              <Box
+                sx={{
+                  minWidth: 0,
+                  display: { xs: 'none', sm: 'block' },
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    color: 'text.primary',
+                    letterSpacing: '-0.01em',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  Avicultura
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', fontSize: '0.72rem' }}
+                >
+                  Control Center
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton
+              color="inherit"
+              aria-label="Abrir menú de navegación"
+              onClick={() => setMobileOpen(true)}
+              edge="start"
+              sx={{
+                ml: 1,
+                mr: 2,
+                display: { xs: 'inline-flex', md: 'none' },
+                color: 'text.primary',
+                width: 40,
+                minWidth: 40,
+                height: 40,
+                minHeight: 40,
+                padding: 0,
+                borderRadius: 'var(--ds-radius-sm, 6px)',
+                '& .MuiTouchRipple-root': {
+                  borderRadius: 'var(--ds-radius-sm, 6px)',
+                },
+              }}
+            >
+              <Menu size={24} strokeWidth={1.75} aria-hidden />
+            </IconButton>
+            <Typography
+              variant="body2"
+              noWrap
+              sx={{
+                flexGrow: 1,
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+                color: 'text.secondary',
+              }}
+            >
+              {pageTitle}
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
               <Chip
-                label={userEmail}
+                label={roleLabel}
                 size="small"
-                variant="outlined"
                 sx={{
                   display: { xs: 'none', sm: 'inline-flex' },
-                  maxWidth: 220,
-                  borderColor: 'divider',
-                  color: 'text.secondary',
-                  '& .MuiChip-label': {
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  },
+                  bgcolor: 'rgba(75, 90, 40, 0.1)',
+                  color: 'primary.dark',
+                  border: 'none',
+                  fontWeight: 700,
                 }}
               />
-            )}
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<LogOut size={18} strokeWidth={1.75} aria-hidden />}
-              onClick={handleSignOut}
-              disabled={signingOut}
-              sx={{ color: 'text.primary' }}
-            >
-              {signingOut ? 'Cerrando...' : 'Salir'}
-            </Button>
-          </Stack>
+              {userEmail && (
+                <Chip
+                  label={userEmail}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    display: { xs: 'none', sm: 'inline-flex' },
+                    maxWidth: 220,
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    '& .MuiChip-label': {
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                />
+              )}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<LogOut size={18} strokeWidth={1.75} aria-hidden />}
+                onClick={handleSignOut}
+                disabled={signingOut}
+                sx={{ color: 'text.primary' }}
+              >
+                {signingOut ? 'Cerrando...' : 'Salir'}
+              </Button>
+            </Stack>
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -187,7 +231,11 @@ const DashboardLayout = () => {
         slotProps={{ root: { keepMounted: true } }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { width: DRAWER_WIDTH },
+          '& .MuiDrawer-paper': {
+            width: DRAWER_WIDTH,
+            mt: '64px',
+            height: 'calc(100% - 64px)',
+          },
         }}
       >
         <Sidebar onNavigate={() => setMobileOpen(false)} />
@@ -201,6 +249,8 @@ const DashboardLayout = () => {
           '& .MuiDrawer-paper': {
             width: desktopDrawerWidth,
             overflowX: 'hidden',
+            top: 64,
+            height: 'calc(100% - 64px)',
             transition: (theme) =>
               theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
@@ -212,7 +262,7 @@ const DashboardLayout = () => {
           paper: {
             onMouseEnter: () => setSidebarExpanded(true),
             onMouseLeave: () => {
-              if (!sidebarPinned) setSidebarExpanded(false);
+              setSidebarExpanded(false);
             },
           },
         }}
@@ -231,9 +281,9 @@ const DashboardLayout = () => {
         className="premium-fade-up"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${desktopDrawerWidth}px)` },
-          ml: { md: `${desktopDrawerWidth}px` },
-          pt: '60px',
+          width: { md: `calc(100% - ${DRAWER_WIDTH_COLLAPSED}px)` },
+          ml: { md: `${DRAWER_WIDTH_COLLAPSED}px` },
+          pt: '64px',
           transition: (theme) =>
             theme.transitions.create(['margin', 'width'], {
               easing: theme.transitions.easing.sharp,

@@ -3,7 +3,7 @@ export interface Corte {
   id: number;
   fecha_inicio: string; // ISO 8601
   fecha_final: string | null;
-  tipo_ave: string | null;
+  raza_ave_id: number;
   notas: string | null;
   numero_aves_total: number;
   saldo_aves_total: number;

@@ -65,15 +65,25 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 6. Cortes (lotes activos)
+-- 6. Cortes (lotes activos) + distribución por galpón
 -- ============================================================
-INSERT INTO public.cortes (id, galpon_id, fecha_inicio, numero_aves, tipo_ave, estado, saldo_aves)
+INSERT INTO public.cortes (
+  id, fecha_inicio, numero_aves_total, saldo_aves_total, raza_ave_id, estado
+)
 VALUES
-  (1, 1, '2025-01-15', 4800, 'Hy-Line Brown', 'activo', 4800),
-  (2, 2, '2025-02-01', 4900, 'Hy-Line Brown', 'activo', 4900),
-  (3, 3, '2025-01-20', 2950, 'Lohmann LSL', 'activo', 2950),
-  (4, 4, '2025-03-01', 3800, 'Hy-Line Brown', 'activo', 3800)
+  (1, '2025-01-15', 4800, 4800, (SELECT id FROM public.razas_ave WHERE codigo = 'HY-LINE-BROWN'), 'activo'),
+  (2, '2025-02-01', 4900, 4900, (SELECT id FROM public.razas_ave WHERE codigo = 'HY-LINE-BROWN'), 'activo'),
+  (3, '2025-01-20', 2950, 2950, (SELECT id FROM public.razas_ave WHERE codigo = 'LOHMANN-BROWN'), 'activo'),
+  (4, '2025-03-01', 3800, 3800, (SELECT id FROM public.razas_ave WHERE codigo = 'HY-LINE-BROWN'), 'activo')
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.corte_galpones (corte_id, galpon_id, aves_iniciales, saldo_aves)
+VALUES
+  (1, 1, 4800, 4800),
+  (2, 2, 4900, 4900),
+  (3, 3, 2950, 2950),
+  (4, 4, 3800, 3800)
+ON CONFLICT (corte_id, galpon_id) DO NOTHING;
 
 -- ============================================================
 -- 7. Usuarios de prueba

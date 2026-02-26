@@ -35,6 +35,7 @@ export interface DashboardData {
 }
 
 type DailyRecordRow = {
+  corte_id: number | null;
   galpon_id: number;
   fecha: string;
   numero_aves_muertas: number;
@@ -42,12 +43,14 @@ type DailyRecordRow = {
 };
 
 type FeedRecordRow = {
+  corte_id: number | null;
   galpon_id: number;
   fecha: string;
   cantidad_alimento_bultos: number | null;
 };
 
 type MortalityRecordRow = {
+  corte_id: number | null;
   galpon_id: number;
   fecha: string;
   cantidad_aves_muertas: number | null;
@@ -78,7 +81,7 @@ function getDaysAgoDate(days: number): string {
 async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string): Promise<DailyRecordRow[]> {
   const feedResult = await supabase
     .from('registro_alimentacion_galpon')
-    .select('galpon_id, fecha, cantidad_alimento_bultos')
+    .select('corte_id, galpon_id, fecha, cantidad_alimento_bultos')
     .in('galpon_id', galponIds)
     .gte('fecha', sevenDaysAgoDate);
 
@@ -95,6 +98,7 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
     dailyByKey.set(key, {
       galpon_id: feed.galpon_id,
       fecha: feed.fecha,
+      corte_id: feed.corte_id ?? null,
       cantidad_alimento_bultos: feed.cantidad_alimento_bultos ?? 0,
       numero_aves_muertas: 0,
     });
@@ -102,7 +106,7 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
 
   const mortalityResult = await supabase
     .from('registro_mortalidad')
-    .select('galpon_id, fecha, cantidad_aves_muertas')
+    .select('corte_id, galpon_id, fecha, cantidad_aves_muertas')
     .in('galpon_id', galponIds)
     .gte('fecha', sevenDaysAgoDate);
 
@@ -116,6 +120,7 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
     const key = `${mortality.galpon_id}|${mortality.fecha}`;
     const current = dailyByKey.get(key);
     if (current) {
+      current.corte_id ??= mortality.corte_id ?? null;
       current.numero_aves_muertas += mortality.cantidad_aves_muertas ?? 0;
       continue;
     }
@@ -123,6 +128,7 @@ async function fetchDailyRecords(galponIds: number[], sevenDaysAgoDate: string):
     dailyByKey.set(key, {
       galpon_id: mortality.galpon_id,
       fecha: mortality.fecha,
+      corte_id: mortality.corte_id ?? null,
       cantidad_alimento_bultos: 0,
       numero_aves_muertas: mortality.cantidad_aves_muertas ?? 0,
     });
@@ -231,9 +237,11 @@ function deriveAlerts(
   const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
   for (const corte of cortes) {
     const corteGalponIds = new Set(corteGalponesMap.get(corte.id) ?? []);
-    const corteRecords = weekDailyRecords.filter(
-      (r) => corteGalponIds.has(r.galpon_id) && r.numero_aves_muertas > 0
-    );
+    const corteRecords = weekDailyRecords.filter((r) => {
+      if (r.numero_aves_muertas <= 0) return false;
+      if (r.corte_id != null) return r.corte_id === corte.id;
+      return corteGalponIds.has(r.galpon_id);
+    });
     if (corteRecords.length === 0) continue;
 
     const todayMortality = corteRecords
@@ -322,7 +330,7 @@ const DashboardService = {
     const [produccionResult, dailyRecords, productosResult] = await Promise.all([
       supabase
         .from('produccion')
-        .select('galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
+        .select('corte_id, galpon_id, fecha, numero_secuencia, producto_codigo, cantidad')
         .in('galpon_id', galponIds)
         .gte('fecha', thirtyDaysAgoDate)
         .order('fecha', { ascending: true }),

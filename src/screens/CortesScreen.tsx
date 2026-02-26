@@ -59,7 +59,7 @@ const CortesScreen = () => {
   const [confirmFinalizar, setConfirmFinalizar] = useState<Corte | null>(null);
 
   const [fechaInicio, setFechaInicio] = useState(dayjs().format('YYYY-MM-DD'));
-  const [tipoAve, setTipoAve] = useState('');
+  const [selectedRazaAveId, setSelectedRazaAveId] = useState('');
   const [notas, setNotas] = useState('');
   const [numeroAvesTotal, setNumeroAvesTotal] = useState('');
   const [detalles, setDetalles] = useState<FormDetalle[]>([emptyDetalle()]);
@@ -67,6 +67,7 @@ const CortesScreen = () => {
 
   const galponMap = useMemo(() => new Map<number, Galpon>(galpones.map((g) => [g.id, g])), [galpones]);
   const fincaMap = useMemo(() => new Map<number, Finca>(fincas.map((f) => [f.id, f])), [fincas]);
+  const razaMap = useMemo(() => new Map<number, RazaAve>(razasAve.map((r) => [r.id, r])), [razasAve]);
 
   const activeGalponIds = useMemo(() => {
     const ids = new Set<number>();
@@ -128,7 +129,7 @@ const CortesScreen = () => {
 
   const resetForm = () => {
     setFechaInicio(dayjs().format('YYYY-MM-DD'));
-    setTipoAve('');
+    setSelectedRazaAveId('');
     setNotas('');
     setNumeroAvesTotal('');
     setDetalles([emptyDetalle()]);
@@ -172,8 +173,20 @@ const CortesScreen = () => {
       return;
     }
 
-    if (!tipoAve) {
-      setFormError('El tipo de ave es obligatorio.');
+    if (!selectedRazaAveId) {
+      setFormError('La raza de ave es obligatoria.');
+      return;
+    }
+
+    const razaAveId = Number(selectedRazaAveId);
+    if (!Number.isInteger(razaAveId) || razaAveId <= 0) {
+      setFormError('La raza de ave seleccionada no es válida.');
+      return;
+    }
+
+    const selectedRaza = razasAve.find((raza) => raza.id === razaAveId);
+    if (!selectedRaza) {
+      setFormError('No se encontró la raza de ave seleccionada.');
       return;
     }
 
@@ -247,7 +260,7 @@ const CortesScreen = () => {
         return;
       }
 
-      await submitCorte(payloadDetalles, total);
+      await submitCorte(payloadDetalles, total, selectedRaza);
     } catch (err) {
       console.error('Error creating corte:', err);
       setFormError('No se pudo crear el corte. Intente de nuevo.');
@@ -259,13 +272,14 @@ const CortesScreen = () => {
   const submitCorte = async (
     payloadDetalles: { galpon_id: number; aves_iniciales: number }[],
     total: number,
+    raza: RazaAve,
   ) => {
     setSaving(true);
     setFormError(null);
     try {
       await CorteService.createCorte({
         fecha_inicio: fechaInicio,
-        tipo_ave: tipoAve,
+        raza_ave_id: raza.id,
         notas,
         numero_aves_total: total,
         galpones: payloadDetalles,
@@ -357,6 +371,7 @@ const CortesScreen = () => {
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Fecha inicio</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Raza</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Aves total</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Saldo total</TableCell>
@@ -368,7 +383,7 @@ const CortesScreen = () => {
             <TableBody>
               {cortesRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8}>
+                  <TableCell colSpan={9}>
                     <Typography sx={{ py: 2, color: 'text.secondary' }}>
                       No hay cortes registrados.
                     </Typography>
@@ -395,11 +410,13 @@ const CortesScreen = () => {
                         : `Galpon ${item.galpon_id} (${item.aves_iniciales})`;
                     })
                     .join(', ');
+                  const razaLabel = razaMap.get(corte.raza_ave_id)?.descripcion ?? `Raza #${corte.raza_ave_id}`;
 
                   return (
                     <TableRow key={corte.id} hover>
                       <TableCell>{corte.id}</TableCell>
                       <TableCell>{dayjs(corte.fecha_inicio).format('YYYY-MM-DD')}</TableCell>
+                      <TableCell>{razaLabel}</TableCell>
                       <TableCell sx={{ textTransform: 'capitalize' }}>{corte.estado}</TableCell>
                       <TableCell>{corte.numero_aves_total}</TableCell>
                       <TableCell>{corte.saldo_aves_total}</TableCell>
@@ -464,14 +481,14 @@ const CortesScreen = () => {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField
                 select
-                label="Tipo de ave"
-                value={tipoAve}
-                onChange={(event) => setTipoAve(event.target.value)}
+                label="Raza de ave"
+                value={selectedRazaAveId}
+                onChange={(event) => setSelectedRazaAveId(event.target.value)}
                 fullWidth
                 required
               >
                 {razasAve.map((raza) => (
-                  <MenuItem key={raza.id} value={raza.codigo}>
+                  <MenuItem key={raza.id} value={raza.id.toString()}>
                     {raza.descripcion}
                   </MenuItem>
                 ))}
@@ -587,11 +604,17 @@ const CortesScreen = () => {
             variant="contained"
             onClick={() => {
               const total = Number(numeroAvesTotal);
+              const razaAveId = Number(selectedRazaAveId);
+              const selectedRaza = razasAve.find((raza) => raza.id === razaAveId);
+              if (!selectedRaza) {
+                setFormError('No se encontró la raza de ave seleccionada.');
+                return;
+              }
               const payloadDetalles = detalles.map((d) => ({
                 galpon_id: Number(d.galponId),
                 aves_iniciales: Number(d.avesIniciales),
               }));
-              void submitCorte(payloadDetalles, total);
+              void submitCorte(payloadDetalles, total, selectedRaza);
             }}
           >
             Continuar

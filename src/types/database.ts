@@ -151,7 +151,7 @@ export type Database = {
           id: number
           fecha_inicio: string
           fecha_final: string | null
-          tipo_ave: string | null
+          raza_ave_id: number
           notas: string | null
           estado: string
           created_at: string | null
@@ -162,7 +162,7 @@ export type Database = {
           id?: number
           fecha_inicio: string
           fecha_final?: string | null
-          tipo_ave?: string | null
+          raza_ave_id: number
           notas?: string | null
           estado?: string
           created_at?: string | null
@@ -173,14 +173,22 @@ export type Database = {
           id?: number
           fecha_inicio?: string
           fecha_final?: string | null
-          tipo_ave?: string | null
+          raza_ave_id?: number
           notas?: string | null
           estado?: string
           created_at?: string | null
           numero_aves_total?: number
           saldo_aves_total?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cortes_raza_ave_id_fkey"
+            columns: ["raza_ave_id"]
+            isOneToOne: false
+            referencedRelation: "razas_ave"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fincas: {
         Row: {
@@ -302,24 +310,34 @@ export type Database = {
       }
       registro_alimentacion_galpon: {
         Row: {
+          corte_id: number | null
           galpon_id: number
           fecha: string
           producto_alimento_codigo: number
           cantidad_alimento_bultos: number
         }
         Insert: {
+          corte_id?: number | null
           galpon_id: number
           fecha: string
           producto_alimento_codigo: number
           cantidad_alimento_bultos: number
         }
         Update: {
+          corte_id?: number | null
           galpon_id?: number
           fecha?: string
           producto_alimento_codigo?: number
           cantidad_alimento_bultos?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "reg_alim_galpon_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "registro_alimentacion_galpon_galpon_id_fkey"
             columns: ["galpon_id"]
@@ -339,6 +357,7 @@ export type Database = {
       registro_mortalidad: {
         Row: {
           id: number
+          corte_id: number | null
           galpon_id: number
           fecha: string
           numero_secuencia: number
@@ -348,6 +367,7 @@ export type Database = {
         }
         Insert: {
           id?: number
+          corte_id?: number | null
           galpon_id: number
           fecha: string
           numero_secuencia: number
@@ -357,6 +377,7 @@ export type Database = {
         }
         Update: {
           id?: number
+          corte_id?: number | null
           galpon_id?: number
           fecha?: string
           numero_secuencia?: number
@@ -365,6 +386,13 @@ export type Database = {
           created_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "registro_mortalidad_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "registro_mortalidad_galpon_id_fkey"
             columns: ["galpon_id"]
@@ -433,6 +461,7 @@ export type Database = {
       produccion: {
         Row: {
           cantidad: number
+          corte_id: number | null
           fecha: string
           galpon_id: number
           numero_secuencia: number
@@ -440,6 +469,7 @@ export type Database = {
         }
         Insert: {
           cantidad: number
+          corte_id?: number | null
           fecha: string
           galpon_id: number
           numero_secuencia: number
@@ -447,12 +477,20 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          corte_id?: number | null
           fecha?: string
           galpon_id?: number
           numero_secuencia?: number
           producto_codigo?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "produccion_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produccion_galpon_id_fkey"
             columns: ["galpon_id"]
@@ -566,20 +604,22 @@ export type Database = {
       create_corte_with_galpones: {
         Args: {
           p_fecha_inicio: string
-          p_tipo_ave: string
+          p_tipo_ave?: string | null
           p_notas: string
           p_numero_aves_total: number
           p_galpones: Json
+          p_raza_ave_id?: number | null
         }
         Returns: number
       }
       crear_corte_con_galpones: {
         Args: {
           p_fecha_inicio: string
-          p_tipo_ave: string
+          p_tipo_ave?: string | null
           p_notas: string
           p_numero_aves_total: number
           p_galpones: Json
+          p_raza_ave_id?: number | null
         }
         Returns: Json
       }

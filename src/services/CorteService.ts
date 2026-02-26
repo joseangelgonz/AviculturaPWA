@@ -3,7 +3,7 @@ import type { Corte, CorteGalpon } from '../models/Corte';
 
 interface CreateCortePayload {
   fecha_inicio: string;
-  tipo_ave: string;
+  raza_ave_id: number;
   notas: string;
   numero_aves_total: number;
   galpones: { galpon_id: number; aves_iniciales: number }[];
@@ -37,10 +37,10 @@ const CorteService = {
   async createCorte(payload: CreateCortePayload): Promise<{ corte_id: number }> {
     const { data, error } = await supabase.rpc('create_corte_with_galpones', {
       p_fecha_inicio: payload.fecha_inicio,
-      p_tipo_ave: payload.tipo_ave,
       p_notas: payload.notas,
       p_numero_aves_total: payload.numero_aves_total,
       p_galpones: payload.galpones,
+      p_raza_ave_id: payload.raza_ave_id,
     });
 
     if (error) throw error;

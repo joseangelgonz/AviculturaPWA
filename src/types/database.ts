@@ -12,70 +12,12 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
-      causas_mortalidad: {
-        Row: {
-          codigo: string
-          descripcion: string
-        }
-        Insert: {
-          codigo: string
-          descripcion: string
-        }
-        Update: {
-          codigo?: string
-          descripcion?: string
-        }
-        Relationships: []
-      }
-      fabricantes_alimento: {
-        Row: {
-          created_at: string
-          id: number
-          nombre: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          nombre: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          nombre?: string
-        }
-        Relationships: []
-      }
       alimentos: {
         Row: {
           activo: boolean
-          categoria: string | null
+          categoria: string
           codigo: number
           created_at: string
           descripcion: string
@@ -83,7 +25,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
-          categoria?: string | null
+          categoria?: string
           codigo?: number
           created_at?: string
           descripcion: string
@@ -91,7 +33,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
-          categoria?: string | null
+          categoria?: string
           codigo?: number
           created_at?: string
           descripcion?: string
@@ -107,27 +49,42 @@ export type Database = {
           },
         ]
       }
-      corte_galpones: {
+      causas_mortalidad: {
         Row: {
-          corte_id: number
-          galpon_id: number
-          aves_iniciales: number
-          saldo_aves: number
-          created_at: string
+          codigo: string
+          descripcion: string
         }
         Insert: {
-          corte_id: number
-          galpon_id: number
-          aves_iniciales: number
-          saldo_aves?: number
-          created_at?: string
+          codigo: string
+          descripcion: string
         }
         Update: {
-          corte_id?: number
-          galpon_id?: number
-          aves_iniciales?: number
-          saldo_aves?: number
+          codigo?: string
+          descripcion?: string
+        }
+        Relationships: []
+      }
+      corte_galpones: {
+        Row: {
+          aves_iniciales: number
+          corte_id: number
+          created_at: string
+          galpon_id: number
+          saldo_aves: number
+        }
+        Insert: {
+          aves_iniciales: number
+          corte_id: number
           created_at?: string
+          galpon_id: number
+          saldo_aves: number
+        }
+        Update: {
+          aves_iniciales?: number
+          corte_id?: number
+          created_at?: string
+          galpon_id?: number
+          saldo_aves?: number
         }
         Relationships: [
           {
@@ -148,36 +105,36 @@ export type Database = {
       }
       cortes: {
         Row: {
-          id: number
-          fecha_inicio: string
-          fecha_final: string | null
-          raza_ave_id: number
-          notas: string | null
-          estado: string
           created_at: string | null
+          estado: string
+          fecha_final: string | null
+          fecha_inicio: string
+          id: number
+          notas: string | null
           numero_aves_total: number
+          raza_ave_id: number
           saldo_aves_total: number
         }
         Insert: {
-          id?: number
-          fecha_inicio: string
-          fecha_final?: string | null
-          raza_ave_id: number
-          notas?: string | null
-          estado?: string
           created_at?: string | null
+          estado?: string
+          fecha_final?: string | null
+          fecha_inicio: string
+          id?: number
+          notas?: string | null
           numero_aves_total: number
-          saldo_aves_total?: number
+          raza_ave_id: number
+          saldo_aves_total: number
         }
         Update: {
-          id?: number
-          fecha_inicio?: string
-          fecha_final?: string | null
-          raza_ave_id?: number
-          notas?: string | null
-          estado?: string
           created_at?: string | null
+          estado?: string
+          fecha_final?: string | null
+          fecha_inicio?: string
+          id?: number
+          notas?: string | null
           numero_aves_total?: number
+          raza_ave_id?: number
           saldo_aves_total?: number
         }
         Relationships: [
@@ -189,6 +146,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fabricantes_alimento: {
+        Row: {
+          created_at: string
+          id: number
+          nombre: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          nombre: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          nombre?: string
+        }
+        Relationships: []
       }
       fincas: {
         Row: {
@@ -249,17 +224,14 @@ export type Database = {
       operario_galpones: {
         Row: {
           galpon_id: number
-          id: number
           operario_id: string
         }
         Insert: {
           galpon_id: number
-          id?: number
           operario_id: string
         }
         Update: {
           galpon_id?: number
-          id?: number
           operario_id?: string
         }
         Relationships: [
@@ -276,185 +248,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      recoleccion_huevos: {
-        Row: {
-          galpon_id: number
-          fecha: string
-          numero_secuencia: number
-          cantidad_huevos: number
-        }
-        Insert: {
-          galpon_id: number
-          fecha: string
-          numero_secuencia: number
-          cantidad_huevos: number
-        }
-        Update: {
-          galpon_id?: number
-          fecha?: string
-          numero_secuencia?: number
-          cantidad_huevos?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recoleccion_huevos_galpon_id_fkey"
-            columns: ["galpon_id"]
-            isOneToOne: false
-            referencedRelation: "galpones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      registro_alimentacion_galpon: {
-        Row: {
-          corte_id: number | null
-          galpon_id: number
-          fecha: string
-          producto_alimento_codigo: number
-          cantidad_alimento_bultos: number
-        }
-        Insert: {
-          corte_id?: number | null
-          galpon_id: number
-          fecha: string
-          producto_alimento_codigo: number
-          cantidad_alimento_bultos: number
-        }
-        Update: {
-          corte_id?: number | null
-          galpon_id?: number
-          fecha?: string
-          producto_alimento_codigo?: number
-          cantidad_alimento_bultos?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reg_alim_galpon_corte_id_fkey"
-            columns: ["corte_id"]
-            isOneToOne: false
-            referencedRelation: "cortes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registro_alimentacion_galpon_galpon_id_fkey"
-            columns: ["galpon_id"]
-            isOneToOne: false
-            referencedRelation: "galpones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registro_alimentacion_galpon_producto_alimento_codigo_fkey"
-            columns: ["producto_alimento_codigo"]
-            isOneToOne: false
-            referencedRelation: "alimentos"
-            referencedColumns: ["codigo"]
-          },
-        ]
-      }
-      registro_mortalidad: {
-        Row: {
-          id: number
-          corte_id: number | null
-          galpon_id: number
-          fecha: string
-          numero_secuencia: number
-          causa_mortalidad_codigo: string
-          cantidad_aves_muertas: number
-          created_at: string | null
-        }
-        Insert: {
-          id?: number
-          corte_id?: number | null
-          galpon_id: number
-          fecha: string
-          numero_secuencia: number
-          causa_mortalidad_codigo: string
-          cantidad_aves_muertas: number
-          created_at?: string | null
-        }
-        Update: {
-          id?: number
-          corte_id?: number | null
-          galpon_id?: number
-          fecha?: string
-          numero_secuencia?: number
-          causa_mortalidad_codigo?: string
-          cantidad_aves_muertas?: number
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "registro_mortalidad_corte_id_fkey"
-            columns: ["corte_id"]
-            isOneToOne: false
-            referencedRelation: "cortes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registro_mortalidad_galpon_id_fkey"
-            columns: ["galpon_id"]
-            isOneToOne: false
-            referencedRelation: "galpones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registro_mortalidad_causa_mortalidad_codigo_fkey"
-            columns: ["causa_mortalidad_codigo"]
-            isOneToOne: false
-            referencedRelation: "causas_mortalidad"
-            referencedColumns: ["codigo"]
-          },
-        ]
-      }
-      registro_diario_galpon: {
-        Row: {
-          galpon_id: number
-          fecha: string
-          producto_alimento_codigo: number
-          cantidad_alimento_bultos: number
-          numero_aves_muertas: number
-          causa_mortalidad_codigo: string | null
-        }
-        Insert: {
-          galpon_id: number
-          fecha: string
-          producto_alimento_codigo?: number
-          cantidad_alimento_bultos?: number
-          numero_aves_muertas?: number
-          causa_mortalidad_codigo?: string | null
-        }
-        Update: {
-          galpon_id?: number
-          fecha?: string
-          producto_alimento_codigo?: number
-          cantidad_alimento_bultos?: number
-          numero_aves_muertas?: number
-          causa_mortalidad_codigo?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "registro_diario_galpon_galpon_id_fkey"
-            columns: ["galpon_id"]
-            isOneToOne: false
-            referencedRelation: "galpones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "registro_diario_galpon_producto_alimento_codigo_fkey"
-            columns: ["producto_alimento_codigo"]
-            isOneToOne: false
-            referencedRelation: "alimentos"
-            referencedColumns: ["codigo"]
-          },
-          {
-            foreignKeyName: "registro_diario_galpon_causa_mortalidad_codigo_fkey"
-            columns: ["causa_mortalidad_codigo"]
-            isOneToOne: false
-            referencedRelation: "causas_mortalidad"
-            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -484,6 +277,13 @@ export type Database = {
           producto_codigo?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "produccion_corte_galpon_fkey"
+            columns: ["corte_id", "galpon_id"]
+            isOneToOne: false
+            referencedRelation: "corte_galpones"
+            referencedColumns: ["corte_id", "galpon_id"]
+          },
           {
             foreignKeyName: "produccion_corte_id_fkey"
             columns: ["corte_id"]
@@ -536,24 +336,6 @@ export type Database = {
           },
         ]
       }
-      razas_ave: {
-        Row: {
-          id: number
-          codigo: string
-          descripcion: string
-        }
-        Insert: {
-          id?: number
-          codigo: string
-          descripcion: string
-        }
-        Update: {
-          id?: number
-          codigo?: string
-          descripcion?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           email: string | null
@@ -574,6 +356,168 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      razas_ave: {
+        Row: {
+          codigo: string
+          descripcion: string | null
+          id: number
+        }
+        Insert: {
+          codigo: string
+          descripcion?: string | null
+          id?: number
+        }
+        Update: {
+          codigo?: string
+          descripcion?: string | null
+          id?: number
+        }
+        Relationships: []
+      }
+      recoleccion_huevos: {
+        Row: {
+          cantidad_huevos: number
+          fecha: string
+          galpon_id: number
+          numero_secuencia: number
+        }
+        Insert: {
+          cantidad_huevos: number
+          fecha: string
+          galpon_id: number
+          numero_secuencia: number
+        }
+        Update: {
+          cantidad_huevos?: number
+          fecha?: string
+          galpon_id?: number
+          numero_secuencia?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recoleccion_huevos_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registro_alimentacion_galpon: {
+        Row: {
+          cantidad_alimento_bultos: number
+          corte_id: number | null
+          fecha: string
+          galpon_id: number
+          producto_alimento_codigo: number
+        }
+        Insert: {
+          cantidad_alimento_bultos: number
+          corte_id?: number | null
+          fecha: string
+          galpon_id: number
+          producto_alimento_codigo: number
+        }
+        Update: {
+          cantidad_alimento_bultos?: number
+          corte_id?: number | null
+          fecha?: string
+          galpon_id?: number
+          producto_alimento_codigo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reg_alim_corte_galpon_fkey"
+            columns: ["corte_id", "galpon_id"]
+            isOneToOne: false
+            referencedRelation: "corte_galpones"
+            referencedColumns: ["corte_id", "galpon_id"]
+          },
+          {
+            foreignKeyName: "reg_alim_galpon_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registro_alimentacion_galpon_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registro_alimentacion_galpon_producto_alimento_codigo_fkey"
+            columns: ["producto_alimento_codigo"]
+            isOneToOne: false
+            referencedRelation: "alimentos"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      registro_mortalidad: {
+        Row: {
+          cantidad_aves_muertas: number
+          causa_mortalidad_codigo: string
+          corte_id: number | null
+          created_at: string | null
+          fecha: string
+          galpon_id: number
+          id: number
+          numero_secuencia: number
+        }
+        Insert: {
+          cantidad_aves_muertas: number
+          causa_mortalidad_codigo: string
+          corte_id?: number | null
+          created_at?: string | null
+          fecha: string
+          galpon_id: number
+          id?: number
+          numero_secuencia: number
+        }
+        Update: {
+          cantidad_aves_muertas?: number
+          causa_mortalidad_codigo?: string
+          corte_id?: number | null
+          created_at?: string | null
+          fecha?: string
+          galpon_id?: number
+          id?: number
+          numero_secuencia?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reg_mort_corte_galpon_fkey"
+            columns: ["corte_id", "galpon_id"]
+            isOneToOne: false
+            referencedRelation: "corte_galpones"
+            referencedColumns: ["corte_id", "galpon_id"]
+          },
+          {
+            foreignKeyName: "registro_mortalidad_causa_mortalidad_codigo_fkey"
+            columns: ["causa_mortalidad_codigo"]
+            isOneToOne: false
+            referencedRelation: "causas_mortalidad"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "registro_mortalidad_corte_id_fkey"
+            columns: ["corte_id"]
+            isOneToOne: false
+            referencedRelation: "cortes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registro_mortalidad_galpon_id_fkey"
+            columns: ["galpon_id"]
+            isOneToOne: false
+            referencedRelation: "galpones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       unidades_medida: {
         Row: {
@@ -601,27 +545,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_corte_with_galpones: {
-        Args: {
-          p_fecha_inicio: string
-          p_tipo_ave?: string | null
-          p_notas: string
-          p_numero_aves_total: number
-          p_galpones: Json
-          p_raza_ave_id?: number | null
-        }
-        Returns: number
+      apply_saldo_delta_from_mortality: {
+        Args: { p_delta: number; p_fecha: string; p_galpon_id: number }
+        Returns: undefined
       }
       crear_corte_con_galpones: {
         Args: {
           p_fecha_inicio: string
-          p_tipo_ave?: string | null
-          p_notas: string
-          p_numero_aves_total: number
-          p_galpones: Json
-          p_raza_ave_id?: number | null
+          p_galpones?: Json
+          p_notas?: string
+          p_numero_aves_total?: number
+          p_raza_ave_id?: number
+          p_tipo_ave?: string
         }
         Returns: Json
+      }
+      create_corte_with_galpones: {
+        Args: {
+          p_fecha_inicio: string
+          p_galpones?: Json
+          p_notas?: string
+          p_numero_aves_total?: number
+          p_raza_ave_id?: number
+          p_tipo_ave?: string
+        }
+        Returns: number
+      }
+      get_user_role: { Args: { user_id: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      rebuild_saldos_from_events: { Args: never; Returns: undefined }
+      resolve_corte_for_galpon_date: {
+        Args: { p_fecha: string; p_galpon_id: number }
+        Returns: number
       }
     }
     Enums: {
@@ -751,9 +706,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

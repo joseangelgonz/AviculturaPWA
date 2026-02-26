@@ -59,7 +59,7 @@ const AlimentoService = {
   async createAlimento(alimento: {
     descripcion: string;
     fabricante_alimento_id: number;
-    categoria?: string | null;
+    categoria?: string;
   }): Promise<Alimento> {
     const { data, error } = await supabase
       .from('alimentos')
@@ -77,7 +77,7 @@ const AlimentoService = {
 
   async updateAlimento(
     codigo: number,
-    updates: { descripcion?: string; fabricante_alimento_id?: number; categoria?: string | null; activo?: boolean }
+    updates: { descripcion?: string; fabricante_alimento_id?: number; categoria?: string; activo?: boolean }
   ): Promise<Alimento> {
     const { data, error } = await supabase
       .from('alimentos')

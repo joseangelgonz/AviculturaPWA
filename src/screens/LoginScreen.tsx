@@ -3,6 +3,7 @@ import { Typography, Box, TextField, Button, Alert, Link, Paper, Stack } from '@
 import { ShieldCheck, TimerReset, ChartNoAxesCombined } from 'lucide-react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import AuthService from '../services/AuthService';
+import LogoIcon from '../components/LogoIcon';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -49,9 +50,12 @@ const LoginScreen = () => {
         }}
       >
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, letterSpacing: '-0.01em' }}>
-            Avicultura
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 3 }}>
+            <LogoIcon size={36} sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.01em' }}>
+              Avicultura
+            </Typography>
+          </Box>
           <Typography variant="h3" sx={{ maxWidth: 440, mb: 1.25 }}>
             Gestion avicola con precision diaria.
           </Typography>

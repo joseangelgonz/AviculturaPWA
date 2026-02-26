@@ -13,6 +13,7 @@ import {
 import { Menu, LogOut } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import LogoIcon from './LogoIcon';
 import { useAuth } from '../AuthContext';
 
 const DRAWER_WIDTH = 272;
@@ -100,22 +101,7 @@ const DashboardLayout = () => {
                 minWidth: 0,
               }}
             >
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 'var(--ds-radius-sm, 6px)',
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                A
-              </Box>
+              <LogoIcon size={32} sx={{ color: 'primary.main' }} />
               <Box
                 sx={{
                   minWidth: 0,

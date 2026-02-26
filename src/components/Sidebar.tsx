@@ -5,7 +5,6 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Typography,
   Chip,
 } from '@mui/material';
 import {

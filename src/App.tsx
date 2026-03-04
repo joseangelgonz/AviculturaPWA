@@ -20,6 +20,7 @@ import type { AuthState } from './AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import CortesScreen from './screens/CortesScreen';
 import FincasScreen from './screens/FincasScreen';
+import GalponesScreen from './screens/GalponesScreen';
 
 // --- Placeholder para rutas futuras ---
 const Placeholder = ({ title }: { title: string }) => (
@@ -111,7 +112,7 @@ function App() {
                 <DashboardScreen />
               )} />
               <Route path="/produccion" element={<Placeholder title="Producción" />} />
-              <Route path="/galpones" element={<Placeholder title="Galpones" />} />
+              <Route path="/galpones" element={<RoleGuard allowedRoles={['administrador']}><GalponesScreen /></RoleGuard>} />
               <Route path="/cortes" element={<RoleGuard allowedRoles={['administrador']}><CortesScreen /></RoleGuard>} />
               <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><FincasScreen /></RoleGuard>} />
               <Route path="/reportes" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Reportes" /></RoleGuard>} />

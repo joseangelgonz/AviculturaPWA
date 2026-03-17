@@ -1,5 +1,6 @@
-import { Box, Typography, Grid, Card, CardContent, Button, Chip, Alert } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Button, Chip, Alert, Stack, TextField, MenuItem } from '@mui/material';
 import { Package, Wheat, HeartCrack, Tags, ArrowRight } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
@@ -7,7 +8,7 @@ import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
 const OperarioDashboardScreen = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedGalpon } = useSelectedGalpon();
+  const { selectedGalpon, setSelectedGalpon, assignedGalpones } = useSelectedGalpon();
   const isIndex = location.pathname === '/operario' || location.pathname === '/';
 
   const quickActions = [
@@ -37,6 +38,46 @@ const OperarioDashboardScreen = () => {
     },
   ];
 
+  const fincaMap = useMemo(() => {
+    const map = new Map<number, { id: number; nombre: string }>();
+    for (const galpon of assignedGalpones) {
+      if (galpon.fincas?.nombre) {
+        map.set(galpon.finca_id, { id: galpon.finca_id, nombre: galpon.fincas.nombre });
+      }
+    }
+    return map;
+  }, [assignedGalpones]);
+  const assignedFincaIds = useMemo(
+    () => Array.from(new Set(assignedGalpones.map((galpon) => galpon.finca_id))),
+    [assignedGalpones],
+  );
+
+  const [selectedFincaId, setSelectedFincaId] = useState<string>('');
+
+  useEffect(() => {
+    if (selectedGalpon) {
+      setSelectedFincaId(selectedGalpon.finca_id.toString());
+    } else if (assignedFincaIds.length > 0) {
+      setSelectedFincaId(assignedFincaIds[0].toString());
+    } else {
+      setSelectedFincaId('');
+    }
+  }, [selectedGalpon, assignedFincaIds]);
+
+  const filteredGalpones = useMemo(() => {
+    if (!selectedFincaId) return [];
+    const fincaId = Number(selectedFincaId);
+    return assignedGalpones.filter((galpon) => galpon.finca_id === fincaId);
+  }, [assignedGalpones, selectedFincaId]);
+
+  const selectedFincaLabel = selectedFincaId
+    ? (() => {
+      const finca = fincaMap.get(Number(selectedFincaId));
+      if (!finca) return `Finca ${selectedFincaId}`;
+      return finca.nombre;
+    })()
+    : '';
+
   return (
     <Box>
       {isIndex && (
@@ -53,19 +94,59 @@ const OperarioDashboardScreen = () => {
             </Typography>
           </Box>
 
-          {selectedGalpon ? (
-            <Box className="premium-fade-up premium-delay-1">
-              <Chip
-                label={`Galpon activo: ${selectedGalpon.nombre} (#${selectedGalpon.id})`}
-                variant="outlined"
-                sx={{ mb: 2.25 }}
-              />
-            </Box>
-          ) : (
-            <Alert className="premium-fade-up premium-delay-1" severity="info" variant="outlined" sx={{ mb: 2.25 }}>
-              No hay galpon asignado actualmente.
-            </Alert>
-          )}
+          <Box className="premium-fade-up premium-delay-1" sx={{ mb: 2.25 }}>
+            {assignedGalpones.length === 0 ? (
+              <Alert severity="info" variant="outlined">
+                No hay galpon asignado actualmente.
+              </Alert>
+            ) : (
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                <TextField
+                  select
+                  label="Finca"
+                  value={selectedFincaId}
+                  onChange={(event) => setSelectedFincaId(event.target.value)}
+                  sx={{ minWidth: 220 }}
+                  disabled={assignedFincaIds.length === 0}
+                >
+                  {assignedFincaIds.map((id) => {
+                    const finca = fincaMap.get(id);
+                    const label = finca ? finca.nombre : `Finca ${id}`;
+                    return (
+                    <MenuItem key={id} value={id.toString()}>
+                      {label}
+                    </MenuItem>
+                    );
+                  })}
+                </TextField>
+                <TextField
+                  select
+                  label="Galpon"
+                  value={selectedGalpon?.id ? selectedGalpon.id.toString() : ''}
+                  onChange={(event) => {
+                    const galponId = Number(event.target.value);
+                    const galpon = assignedGalpones.find((item) => item.id === galponId) ?? null;
+                    setSelectedGalpon(galpon);
+                  }}
+                  sx={{ minWidth: 240 }}
+                  disabled={!selectedFincaId || filteredGalpones.length === 0}
+                >
+                  {filteredGalpones.map((galpon) => (
+                    <MenuItem key={galpon.id} value={galpon.id.toString()}>
+                      {galpon.nombre}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                {selectedGalpon && (
+                  <Chip
+                    label={`Activo: ${selectedFincaLabel} · ${selectedGalpon.nombre}`}
+                    variant="outlined"
+                    sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
+                  />
+                )}
+              </Stack>
+            )}
+          </Box>
 
           <Grid className="premium-fade-up premium-delay-2" container spacing={2}>
             {quickActions.map((item) => (

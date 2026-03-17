@@ -10,6 +10,7 @@ import {
 import {
   LayoutDashboard,
   Egg,
+  Users,
   Warehouse,
   Layers,
   Landmark,
@@ -39,6 +40,7 @@ const OPERARIO_ONLY: readonly UserRole[] = ['operario'];
 const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Panel', path: '/', Icon: LayoutDashboard, roles: ALL_ROLES },
   { label: 'Producción', path: '/produccion', Icon: Egg, roles: ADMIN_ONLY },
+  { label: 'Asignaciones', path: '/asignaciones', Icon: Users, roles: ADMIN_ONLY },
   { label: 'Galpones', path: '/galpones', Icon: Warehouse, roles: ADMIN_ONLY },
   { label: 'Cortes', path: '/cortes', Icon: Layers, roles: ADMIN_ONLY },
   { label: 'Fincas', path: '/fincas', Icon: Landmark, roles: ADMIN_ONLY },
@@ -206,3 +208,4 @@ const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
 };
 
 export default Sidebar;
+

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Galpon } from '../models/Galpon';
 import GalponService from '../services/GalponService';
 import { useAuth } from '../AuthContext';
 import { SelectedGalponContext } from '../hooks/useSelectedGalpon';
+
+const STORAGE_KEY = 'operario_galpon_id';
 
 export const SelectedGalponProvider = ({ children }: { children: React.ReactNode }) => {
   const { auth } = useAuth();
@@ -10,6 +12,13 @@ export const SelectedGalponProvider = ({ children }: { children: React.ReactNode
   const [assignedGalpones, setAssignedGalpones] = useState<Galpon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [preferredGalponId, setPreferredGalponId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? Number(raw) : null;
+    setPreferredGalponId(Number.isFinite(parsed) ? parsed : null);
+  }, []);
 
   useEffect(() => {
     if (auth.status === 'authenticated' && auth.role === 'operario') {
@@ -19,7 +28,12 @@ export const SelectedGalponProvider = ({ children }: { children: React.ReactNode
           const galpones = await GalponService.getAssignedGalpones(auth.session.user.id);
           setAssignedGalpones(galpones);
           if (galpones.length > 0) {
-            setSelectedGalpon(galpones[0]);
+            const preferred = preferredGalponId
+              ? galpones.find((item) => item.id === preferredGalponId)
+              : null;
+            setSelectedGalpon(preferred ?? galpones[0]);
+          } else {
+            setSelectedGalpon(null);
           }
         } catch (err) {
           setError(err as Error);
@@ -33,11 +47,33 @@ export const SelectedGalponProvider = ({ children }: { children: React.ReactNode
       setSelectedGalpon(null);
       setLoading(false);
     }
-  }, [auth]);
+  }, [auth, preferredGalponId]);
+
+  useEffect(() => {
+    if (!selectedGalpon) return;
+    window.localStorage.setItem(STORAGE_KEY, selectedGalpon.id.toString());
+  }, [selectedGalpon]);
+
+  useEffect(() => {
+    if (assignedGalpones.length === 0) return;
+    if (selectedGalpon && assignedGalpones.some((item) => item.id === selectedGalpon.id)) {
+      return;
+    }
+    setSelectedGalpon(assignedGalpones[0]);
+  }, [assignedGalpones, selectedGalpon]);
+
+  const handleSetSelectedGalpon = useCallback((galpon: Galpon | null) => {
+    setSelectedGalpon(galpon);
+    if (galpon) {
+      window.localStorage.setItem(STORAGE_KEY, galpon.id.toString());
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
 
   const value = {
     selectedGalpon,
-    setSelectedGalpon,
+    setSelectedGalpon: handleSetSelectedGalpon,
     assignedGalpones,
     loading,
     error,

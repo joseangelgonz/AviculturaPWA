@@ -23,7 +23,7 @@ const GalponService = {
   async getAssignedGalpones(operarioId: string): Promise<Galpon[]> {
     const { data, error } = await supabase
       .from('operario_galpones')
-      .select('galpones(*)') // Selecciona todas las columnas de la tabla 'galpones'
+      .select('galpones(*, fincas(id, nombre, ubicacion))') // Incluye datos de la finca
       .eq('operario_id', operarioId);
 
     if (error) {

@@ -10,7 +10,9 @@
 - Produccion (admin):
   - Vista por finca con total diario.
   - Desglose por galpon.
-  - Desglose por tipo de huevo.
+  - Matriz por tipo de huevo y finca.
+  - Fila final con total por finca y total global.
+  - Scroll horizontal en movil con la columna de tipo fija para mantener contexto.
 - Asignaciones (admin):
   - Seleccion de operario y finca.
   - Checklist de galpones asignados por finca.
@@ -31,6 +33,7 @@
 - `src/components/Sidebar.tsx`
 - `src/components/DashboardLayout.tsx`
 - `src/components/SelectedGalponProvider.tsx`
+- `src/screens/ProduccionScreen.tsx`
 - `src/screens/OperarioDashboardScreen.tsx`
 - `src/services/GalponService.ts`
 - `src/services/ProduccionService.ts`
@@ -38,4 +41,3 @@
 
 ## Migraciones
 - Aplicar `db_migrations/36_allow_operario_select_fincas_for_assigned_galpones.sql` en la base de datos.
-

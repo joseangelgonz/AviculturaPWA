@@ -9,6 +9,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
   TextField,
@@ -39,8 +40,9 @@ interface GalponProduccionRow {
 interface ProductoProduccionRow {
   productoCodigo: number;
   productoNombre: string;
+  fincaId: number | null;
+  fincaNombre: string;
   totalHuevos: number;
-  galponesConRegistro: number;
 }
 
 interface ProduccionDetalleRow {
@@ -139,33 +141,84 @@ const buildGalponRows = (produccionRows: ProduccionDetalleRow[]): GalponProducci
 };
 
 const buildProductoRows = (produccionRows: ProduccionDetalleRow[]): ProductoProduccionRow[] => {
-  const map = new Map<number, ProductoProduccionRow & { galponIds: Set<number> }>();
+  const map = new Map<string, ProductoProduccionRow>();
 
   for (const row of produccionRows) {
     const productoCodigo = row.producto_codigo;
     const productoNombre = row.productos?.descripcion ?? `Producto ${productoCodigo}`;
-    const current = map.get(productoCodigo) ?? {
+    const fincaId = row.galpones?.finca_id ?? null;
+    const fincaNombre = row.galpones?.fincas?.nombre ?? (fincaId ? `Finca ${fincaId}` : 'Sin finca');
+    const key = `${productoCodigo}-${fincaId ?? 'sin-finca'}`;
+    const current = map.get(key) ?? {
       productoCodigo,
       productoNombre,
+      fincaId,
+      fincaNombre,
       totalHuevos: 0,
-      galponesConRegistro: 0,
-      galponIds: new Set<number>(),
     };
     current.totalHuevos += row.cantidad ?? 0;
-    if (Number.isFinite(row.galpon_id)) {
-      current.galponIds.add(row.galpon_id);
-    }
-    map.set(productoCodigo, current);
+    map.set(key, current);
   }
 
   return Array.from(map.values())
-    .map((item) => ({
-      productoCodigo: item.productoCodigo,
-      productoNombre: item.productoNombre,
-      totalHuevos: item.totalHuevos,
-      galponesConRegistro: item.galponIds.size,
-    }))
-    .sort((a, b) => a.productoCodigo - b.productoCodigo);
+    .sort((a, b) => {
+      if (a.fincaNombre !== b.fincaNombre) {
+        return a.fincaNombre.localeCompare(b.fincaNombre);
+      }
+      if (a.productoNombre !== b.productoNombre) {
+        return a.productoNombre.localeCompare(b.productoNombre);
+      }
+      return a.productoCodigo - b.productoCodigo;
+    });
+};
+
+interface ProductoMatrixRow {
+  productoCodigo: number;
+  productoNombre: string;
+  valoresPorFinca: Record<string, number>;
+  totalHuevos: number;
+}
+
+const buildProductoMatrix = (productoRows: ProductoProduccionRow[]) => {
+  const fincaMap = new Map<string, { fincaId: number | null; fincaNombre: string }>();
+  const productoMap = new Map<number, ProductoMatrixRow>();
+
+  for (const row of productoRows) {
+    const fincaKey = `${row.fincaId ?? 'sin-finca'}`;
+    if (!fincaMap.has(fincaKey)) {
+      fincaMap.set(fincaKey, {
+        fincaId: row.fincaId,
+        fincaNombre: row.fincaNombre,
+      });
+    }
+
+    const current = productoMap.get(row.productoCodigo) ?? {
+      productoCodigo: row.productoCodigo,
+      productoNombre: row.productoNombre,
+      valoresPorFinca: {},
+      totalHuevos: 0,
+    };
+
+    current.valoresPorFinca[fincaKey] = row.totalHuevos;
+    current.totalHuevos += row.totalHuevos;
+    productoMap.set(row.productoCodigo, current);
+  }
+
+  const fincas = Array.from(fincaMap.values()).sort((a, b) => {
+    if (a.fincaNombre !== b.fincaNombre) {
+      return a.fincaNombre.localeCompare(b.fincaNombre);
+    }
+    return (a.fincaId ?? 0) - (b.fincaId ?? 0);
+  });
+
+  const productos = Array.from(productoMap.values()).sort((a, b) => {
+    if (a.productoNombre !== b.productoNombre) {
+      return a.productoNombre.localeCompare(b.productoNombre);
+    }
+    return a.productoCodigo - b.productoCodigo;
+  });
+
+  return { fincas, productos };
 };
 
 const ProduccionScreen = () => {
@@ -203,6 +256,18 @@ const ProduccionScreen = () => {
     () => rows.reduce((sum, row) => sum + row.totalHuevos, 0),
     [rows],
   );
+  const productoMatrix = useMemo(() => buildProductoMatrix(productoRows), [productoRows]);
+  const productoMatrixTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    for (const finca of productoMatrix.fincas) {
+      const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+      totals[fincaKey] = productoMatrix.productos.reduce(
+        (sum, producto) => sum + (producto.valoresPorFinca[fincaKey] ?? 0),
+        0,
+      );
+    }
+    return totals;
+  }, [productoMatrix]);
 
   return (
     <Box>
@@ -303,8 +368,8 @@ const ProduccionScreen = () => {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Galpon</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>Finca</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Galpon</TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">Total huevos</TableCell>
                 </TableRow>
               </TableHead>
@@ -320,8 +385,8 @@ const ProduccionScreen = () => {
                 ) : (
                   galponRows.map((row) => (
                     <TableRow key={row.galponId} hover>
-                      <TableCell>{row.galponNombre}</TableCell>
                       <TableCell>{row.fincaNombre}</TableCell>
+                      <TableCell>{row.galponNombre}</TableCell>
                       <TableCell align="right">{row.totalHuevos}</TableCell>
                     </TableRow>
                   ))
@@ -334,7 +399,7 @@ const ProduccionScreen = () => {
         <Paper sx={{ borderRadius: 'var(--ds-radius-lg, 10px)', overflow: 'hidden' }}>
           <Box sx={{ px: 2, pt: 1.5 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Desglose por tipo de huevo
+              Matriz por tipo de huevo y finca
             </Typography>
           </Box>
           {loading ? (
@@ -342,34 +407,113 @@ const ProduccionScreen = () => {
               <CircularProgress size={24} />
             </Box>
           ) : (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Galpones con registro</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Total huevos</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {productoRows.length === 0 ? (
+            <TableContainer
+              sx={{
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              <Table size="small" sx={{ minWidth: 640 + productoMatrix.fincas.length * 120 }}>
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={3}>
-                      <Typography sx={{ py: 2, color: 'text.secondary' }}>
-                        No hay registros por tipo de huevo en la fecha seleccionada.
-                      </Typography>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 2,
+                        bgcolor: 'background.paper',
+                        minWidth: 160,
+                      }}
+                    >
+                      Tipo
+                    </TableCell>
+                    {productoMatrix.fincas.map((finca) => (
+                      <TableCell
+                        key={`${finca.fincaId ?? 'sin-finca'}`}
+                        sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }}
+                        align="right"
+                      >
+                        {finca.fincaNombre}
+                      </TableCell>
+                    ))}
+                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
+                      Total huevos
                     </TableCell>
                   </TableRow>
-                ) : (
-                  productoRows.map((row) => (
-                    <TableRow key={row.productoCodigo} hover>
-                      <TableCell>{row.productoNombre}</TableCell>
-                      <TableCell>{row.galponesConRegistro}</TableCell>
-                      <TableCell align="right">{row.totalHuevos}</TableCell>
+                </TableHead>
+                <TableBody>
+                  {productoMatrix.productos.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={productoMatrix.fincas.length + 2}
+                        sx={{
+                          position: 'sticky',
+                          left: 0,
+                          bgcolor: 'background.paper',
+                          zIndex: 1,
+                        }}
+                      >
+                        <Typography sx={{ py: 2, color: 'text.secondary' }}>
+                          No hay registros por tipo de huevo en la fecha seleccionada.
+                        </Typography>
+                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    <>
+                      {productoMatrix.productos.map((row) => (
+                        <TableRow key={row.productoCodigo} hover>
+                          <TableCell
+                            sx={{
+                              position: 'sticky',
+                              left: 0,
+                              zIndex: 1,
+                              bgcolor: 'background.paper',
+                              minWidth: 160,
+                            }}
+                          >
+                            {row.productoNombre}
+                          </TableCell>
+                          {productoMatrix.fincas.map((finca) => {
+                            const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+                            return (
+                              <TableCell key={fincaKey} align="right">
+                                {row.valoresPorFinca[fincaKey] ?? 0}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell align="right">{row.totalHuevos}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow>
+                        <TableCell
+                          sx={{
+                            fontWeight: 700,
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 1,
+                            bgcolor: 'background.paper',
+                          }}
+                        >
+                          Total finca
+                        </TableCell>
+                        {productoMatrix.fincas.map((finca) => {
+                          const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+                          return (
+                            <TableCell key={fincaKey} align="right" sx={{ fontWeight: 700 }}>
+                              {productoMatrixTotals[fincaKey] ?? 0}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          {totalGeneral}
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </Paper>
       </Stack>

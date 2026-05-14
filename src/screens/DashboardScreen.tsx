@@ -41,25 +41,8 @@ const DashboardScreen = () => {
             variant="outlined"
             sx={{ borderColor: 'divider', color: 'text.secondary', fontWeight: 500 }}
           />
-          {!!data?.alerts?.length && (
-            <Chip
-              size="small"
-              label={`${data.alerts.length} alerta${data.alerts.length === 1 ? '' : 's'}`}
-              sx={{ bgcolor: 'rgba(168, 120, 33, 0.12)', color: 'warning.dark' }}
-            />
-          )}
         </Stack>
       </Box>
-
-      {data?.alerts && data.alerts.length > 0 && (
-        <Box className="premium-fade-up premium-delay-1" sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2.25 }}>
-          {data.alerts.map((alert) => (
-            <Alert key={alert.id} severity={alert.severity} variant="outlined">
-              {alert.message}
-            </Alert>
-          ))}
-        </Box>
-      )}
 
       <Grid container spacing={2} sx={{ mb: 2.25 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>

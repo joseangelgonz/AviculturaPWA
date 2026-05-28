@@ -56,7 +56,7 @@ const CortesScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmUnderUtil, setConfirmUnderUtil] = useState(false);
-  const [finalizarCorteId, setFinalizarCorteId] = useState<number | null>(null);
+  const [finalizarTarget, setFinalizarTarget] = useState<Corte | null>(null);
 
   const [fechaInicio, setFechaInicio] = useState(dayjs().format('YYYY-MM-DD'));
   const [selectedRazaAveId, setSelectedRazaAveId] = useState('');
@@ -296,13 +296,18 @@ const CortesScreen = () => {
   };
 
   const handleFinalizar = (corte: Corte) => {
-    setFinalizarCorteId(corte.id);
+    if (!Number.isFinite(corte.id)) return;
+    setFinalizarTarget(corte);
+  };
+
+  const handleCloseFinalizar = () => {
+    setFinalizarTarget(null);
   };
 
   const doFinalizar = async () => {
-    if (finalizarCorteId === null) return;
-    const corteId = finalizarCorteId;
-    setFinalizarCorteId(null);
+    if (!finalizarTarget) return;
+    const corteId = finalizarTarget.id;
+    setFinalizarTarget(null);
     setFinalizingId(corteId);
     setError(null);
 
@@ -429,7 +434,7 @@ const CortesScreen = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => void handleFinalizar(corte)}
+                                onClick={() => handleFinalizar(corte)}
                                 disabled={finalizingId === corte.id}
                               >
                                 <Check size={16} strokeWidth={1.8} aria-hidden />
@@ -623,16 +628,18 @@ const CortesScreen = () => {
       </Dialog>
 
       {/* Confirmación finalizar corte */}
-      <Dialog open={finalizarCorteId !== null} onClose={() => setFinalizarCorteId(null)}>
+      <Dialog open={finalizarTarget !== null} onClose={handleCloseFinalizar}>
         <DialogTitle>Finalizar corte</DialogTitle>
         <DialogContent>
-          <Typography>
-            Se finalizará el corte #{finalizarCorteId}. ¿Desea continuar?
-          </Typography>
+          {finalizarTarget && (
+            <Typography>
+              Se finalizará el corte #{finalizarTarget.id}. ¿Desea continuar?
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFinalizarCorteId(null)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => void doFinalizar()}>
+          <Button type="button" onClick={handleCloseFinalizar}>Cancelar</Button>
+          <Button type="button" variant="contained" onClick={() => void doFinalizar()}>
             Finalizar
           </Button>
         </DialogActions>

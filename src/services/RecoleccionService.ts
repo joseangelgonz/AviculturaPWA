@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { logServiceError } from './supabaseErrors';
+import { getSupabaseErrorMessage, logServiceError } from './supabaseErrors';
 
 const RecoleccionService = {
   /**
@@ -29,7 +29,7 @@ const RecoleccionService = {
 
     if (error) {
       logServiceError('Error al registrar recolección de huevos:', error);
-      throw error;
+      throw new Error(getSupabaseErrorMessage(error, 'No se pudo registrar la recolección.'));
     }
   },
 

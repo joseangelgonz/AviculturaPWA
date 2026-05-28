@@ -32,6 +32,25 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
+-- 2b. Catalogo de alimentos (requerido por registro_alimentacion_galpon)
+-- ============================================================
+INSERT INTO public.fabricantes_alimento (nombre)
+VALUES ('Seed Test')
+ON CONFLICT (nombre) DO NOTHING;
+
+INSERT INTO public.alimentos (codigo, fabricante_alimento_id, descripcion, categoria, activo)
+SELECT
+  p.codigo,
+  f.id,
+  p.descripcion,
+  'postura',
+  TRUE
+FROM public.productos p
+JOIN public.fabricantes_alimento f ON f.nombre = 'Seed Test'
+WHERE p.unidad_medida_codigo = 'BL'
+ON CONFLICT (codigo) DO NOTHING;
+
+-- ============================================================
 -- 3. Causas de mortalidad
 -- ============================================================
 INSERT INTO public.causas_mortalidad (codigo, descripcion)

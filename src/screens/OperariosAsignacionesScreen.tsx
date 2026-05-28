@@ -60,6 +60,11 @@ const OperariosAsignacionesScreen = () => {
     void loadBaseData();
   }, [loadBaseData]);
 
+  const selectedOperario = useMemo(
+    () => operarios.find((item) => item.id === selectedOperarioId),
+    [operarios, selectedOperarioId],
+  );
+
   const loadAssignments = useCallback(async () => {
     if (!selectedOperarioId) {
       setAssignedGalponIds(new Set());
@@ -70,6 +75,14 @@ const OperariosAsignacionesScreen = () => {
     try {
       const assignments = await OperarioService.getOperarioAssignments(selectedOperarioId);
       const ids = new Set<number>(assignments.map((row) => row.galpon_id));
+      if (selectedOperario?.email) {
+        const email = selectedOperario.email.toLowerCase();
+        for (const owner of galponOwners) {
+          if (owner.operario_email?.toLowerCase() === email) {
+            ids.add(owner.galpon_id);
+          }
+        }
+      }
       setAssignedGalponIds(ids);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No fue posible cargar asignaciones.';
@@ -77,7 +90,7 @@ const OperariosAsignacionesScreen = () => {
     } finally {
       setLoadingAssignments(false);
     }
-  }, [selectedOperarioId]);
+  }, [selectedOperarioId, galponOwners, selectedOperario?.email]);
 
   useEffect(() => {
     void loadAssignments();
@@ -88,11 +101,6 @@ const OperariosAsignacionesScreen = () => {
     const fincaId = Number(selectedFincaId);
     return galpones.filter((galpon) => galpon.finca_id === fincaId);
   }, [galpones, selectedFincaId]);
-
-  const selectedOperario = useMemo(
-    () => operarios.find((item) => item.id === selectedOperarioId),
-    [operarios, selectedOperarioId],
-  );
 
   const selectedFinca = useMemo(
     () => fincas.find((item) => item.id === Number(selectedFincaId)),
@@ -107,10 +115,21 @@ const OperariosAsignacionesScreen = () => {
     return map;
   }, [galponOwners]);
 
+  const normalizeId = (id: string) => id.trim().toLowerCase();
+
   const isGalponLockedByOther = (galponId: number) => {
     if (!selectedOperarioId) return false;
+    if (assignedGalponIds.has(galponId)) return false;
     const owner = galponOwnerById.get(galponId);
-    return owner != null && owner.operario_id !== selectedOperarioId;
+    if (!owner) return false;
+    if (
+      selectedOperario?.email
+      && owner.operario_email
+      && owner.operario_email.toLowerCase() === selectedOperario.email.toLowerCase()
+    ) {
+      return false;
+    }
+    return normalizeId(owner.operario_id) !== normalizeId(selectedOperarioId);
   };
 
   const toggleGalpon = (galponId: number) => {

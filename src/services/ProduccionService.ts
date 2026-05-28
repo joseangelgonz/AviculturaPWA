@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { logServiceError } from './supabaseErrors';
+import { getSupabaseErrorMessage, logServiceError } from './supabaseErrors';
 
 const ProduccionService = {
   /**
@@ -27,7 +27,7 @@ const ProduccionService = {
 
     if (error) {
       logServiceError('Error al registrar clasificación en lote:', error);
-      throw error;
+      throw new Error(getSupabaseErrorMessage(error, 'No se pudo registrar la clasificación.'));
     }
   },
 

@@ -30,19 +30,22 @@ const OperarioService = {
   },
 
   async getAllGalponAssignments(): Promise<GalponAssignmentOwner[]> {
-    const { data, error } = await supabase
-      .from('operario_galpones')
-      .select('galpon_id, operario_id, profiles(email)');
+    const [{ data, error }, operarios] = await Promise.all([
+      supabase.from('operario_galpones').select('galpon_id, operario_id'),
+      this.getOperarios(),
+    ]);
 
     if (error) {
       logServiceError('Error al obtener asignaciones globales:', error);
       throw new Error(getSupabaseErrorMessage(error, 'No se pudieron cargar las asignaciones.'));
     }
 
+    const emailByOperarioId = new Map(operarios.map((operario) => [operario.id, operario.email]));
+
     return (data || []).map((row) => ({
       galpon_id: row.galpon_id as number,
       operario_id: row.operario_id as string,
-      operario_email: (row.profiles as { email: string | null } | null)?.email ?? null,
+      operario_email: emailByOperarioId.get(row.operario_id as string) ?? null,
     }));
   },
 
@@ -96,7 +99,7 @@ const OperarioService = {
     if (toAdd.length > 0) {
       const { data: conflicts, error: conflictError } = await supabase
         .from('operario_galpones')
-        .select('galpon_id, operario_id, profiles(email)')
+        .select('galpon_id, operario_id')
         .in('galpon_id', toAdd)
         .neq('operario_id', operarioId);
 
@@ -106,8 +109,10 @@ const OperarioService = {
       }
 
       if (conflicts && conflicts.length > 0) {
+        const operarios = await this.getOperarios();
+        const emailByOperarioId = new Map(operarios.map((operario) => [operario.id, operario.email]));
         const labels = conflicts.map((row) => {
-          const email = (row.profiles as { email: string | null } | null)?.email;
+          const email = emailByOperarioId.get(row.operario_id as string);
           return `galpón ${row.galpon_id}${email ? ` (${email})` : ''}`;
         });
         throw new Error(

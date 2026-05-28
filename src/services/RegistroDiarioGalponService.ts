@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { logServiceError } from './supabaseErrors';
+import { getSupabaseErrorMessage, logServiceError } from './supabaseErrors';
 
 interface CausaMortalidad {
   codigo: string;
@@ -47,7 +47,7 @@ const RegistroDiarioGalponService = {
 
       if (feedError) {
         logServiceError('Error upserting feed daily record:', feedError);
-        throw feedError;
+        throw new Error(getSupabaseErrorMessage(feedError, 'No se pudo registrar la alimentación.'));
       }
     }
 
@@ -85,7 +85,7 @@ const RegistroDiarioGalponService = {
 
       if (mortalityError) {
         logServiceError('Error al insertar mortalidad diaria:', mortalityError);
-        throw mortalityError;
+        throw new Error(getSupabaseErrorMessage(mortalityError, 'No se pudo registrar la mortalidad.'));
       }
     }
 

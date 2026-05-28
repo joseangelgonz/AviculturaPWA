@@ -18,7 +18,7 @@ import type { Finca } from '../models/Finca';
 import type { Galpon } from '../models/Galpon';
 import FincaService from '../services/FincaService';
 import GalponService from '../services/GalponService';
-import OperarioService, { type OperarioProfile } from '../services/OperarioService';
+import OperarioService, { type GalponAssignmentOwner, type OperarioProfile } from '../services/OperarioService';
 
 const OperariosAsignacionesScreen = () => {
   const [operarios, setOperarios] = useState<OperarioProfile[]>([]);
@@ -27,6 +27,7 @@ const OperariosAsignacionesScreen = () => {
   const [selectedOperarioId, setSelectedOperarioId] = useState('');
   const [selectedFincaId, setSelectedFincaId] = useState('');
   const [assignedGalponIds, setAssignedGalponIds] = useState<Set<number>>(new Set());
+  const [galponOwners, setGalponOwners] = useState<GalponAssignmentOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,14 +38,16 @@ const OperariosAsignacionesScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const [operariosData, fincasData, galponesData] = await Promise.all([
+      const [operariosData, fincasData, galponesData, ownersData] = await Promise.all([
         OperarioService.getOperarios(),
         FincaService.getAllFincas(),
         GalponService.getAllGalpones(),
+        OperarioService.getAllGalponAssignments(),
       ]);
       setOperarios(operariosData);
       setFincas(fincasData);
       setGalpones(galponesData);
+      setGalponOwners(ownersData);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No fue posible cargar datos.';
       setError(message);
@@ -96,7 +99,22 @@ const OperariosAsignacionesScreen = () => {
     [fincas, selectedFincaId],
   );
 
+  const galponOwnerById = useMemo(() => {
+    const map = new Map<number, GalponAssignmentOwner>();
+    for (const owner of galponOwners) {
+      map.set(owner.galpon_id, owner);
+    }
+    return map;
+  }, [galponOwners]);
+
+  const isGalponLockedByOther = (galponId: number) => {
+    if (!selectedOperarioId) return false;
+    const owner = galponOwnerById.get(galponId);
+    return owner != null && owner.operario_id !== selectedOperarioId;
+  };
+
   const toggleGalpon = (galponId: number) => {
+    if (isGalponLockedByOther(galponId)) return;
     setAssignedGalponIds((prev) => {
       const next = new Set(prev);
       if (next.has(galponId)) {
@@ -120,6 +138,8 @@ const OperariosAsignacionesScreen = () => {
         .map((galpon) => galpon.id);
       await OperarioService.setAssignmentsForFinca(selectedOperarioId, fincaId, desired);
       setMessage('Asignaciones actualizadas.');
+      const ownersData = await OperarioService.getAllGalponAssignments();
+      setGalponOwners(ownersData);
       await loadAssignments();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No fue posible guardar asignaciones.';
@@ -259,19 +279,26 @@ const OperariosAsignacionesScreen = () => {
                     </Alert>
                   ) : (
                     <FormGroup>
-                      {filteredGalpones.map((galpon) => (
-                        <FormControlLabel
-                          key={galpon.id}
-                          control={(
-                            <Checkbox
-                              checked={assignedGalponIds.has(galpon.id)}
-                              onChange={() => toggleGalpon(galpon.id)}
-                              disabled={saving}
-                            />
-                          )}
-                          label={`${galpon.nombre} (ID ${galpon.id})`}
-                        />
-                      ))}
+                      {filteredGalpones.map((galpon) => {
+                        const locked = isGalponLockedByOther(galpon.id);
+                        const owner = galponOwnerById.get(galpon.id);
+                        const ownerLabel = owner?.operario_email ?? owner?.operario_id;
+                        return (
+                          <FormControlLabel
+                            key={galpon.id}
+                            control={(
+                              <Checkbox
+                                checked={assignedGalponIds.has(galpon.id)}
+                                onChange={() => toggleGalpon(galpon.id)}
+                                disabled={saving || locked}
+                              />
+                            )}
+                            label={locked
+                              ? `${galpon.nombre} (ID ${galpon.id}) — asignado a ${ownerLabel}`
+                              : `${galpon.nombre} (ID ${galpon.id})`}
+                          />
+                        );
+                      })}
                     </FormGroup>
                   )}
                 </>

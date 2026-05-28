@@ -78,12 +78,16 @@ const RecoleccionForm = () => {
       setMessage({ type: 'success', text: 'Recolección registrada exitosamente.' });
       setCantidadHuevos('');
 
-      const [newNextSeq, newTotalHuevos] = await Promise.all([
-        RecoleccionService.getNextNumeroSecuencia(selectedGalpon.id, fechaActual),
-        RecoleccionService.getTotalHuevosRecoletados(selectedGalpon.id, fechaActual),
-      ]);
-      setNextNumeroSecuencia(newNextSeq);
-      setTotalHuevosRecolectados(newTotalHuevos);
+      try {
+        const [newNextSeq, newTotalHuevos] = await Promise.all([
+          RecoleccionService.getNextNumeroSecuencia(selectedGalpon.id, fechaActual),
+          RecoleccionService.getTotalHuevosRecoletados(selectedGalpon.id, fechaActual),
+        ]);
+        setNextNumeroSecuencia(newNextSeq);
+        setTotalHuevosRecolectados(newTotalHuevos);
+      } catch {
+        setNextNumeroSecuencia((prev) => (prev != null ? prev + 1 : null));
+      }
     }, 'No se pudo registrar la recolección. Intenta de nuevo.');
   };
 

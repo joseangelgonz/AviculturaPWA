@@ -33,7 +33,10 @@ const GalponService = {
 
     // Supabase returns an array of objects like { galpones: { id: ..., nombre: ... } }
     // We want an array of Galpon directly.
-    return data ? data.map((item: { galpones: Galpon }) => item.galpones) : [];
+    if (!data) return [];
+    return data
+      .map((item: { galpones: Galpon | null }) => item.galpones)
+      .filter((galpon): galpon is Galpon => galpon != null);
   },
 
   /**

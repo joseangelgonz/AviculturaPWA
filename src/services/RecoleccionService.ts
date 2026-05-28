@@ -16,7 +16,7 @@ const RecoleccionService = {
     numero_secuencia: number,
     cantidad_huevos: number
   ) {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('recoleccion_huevos')
       .insert([
         {
@@ -25,14 +25,12 @@ const RecoleccionService = {
           numero_secuencia,
           cantidad_huevos,
         },
-      ])
-      .select(); // Retorna los datos insertados
+      ]);
 
     if (error) {
       logServiceError('Error al registrar recolección de huevos:', error);
       throw error;
     }
-    return data;
   },
 
   /**

@@ -58,11 +58,10 @@ const OperarioDashboardScreen = () => {
     return '';
   }, [selectedGalpon, assignedFincaIds]);
 
-  const fincaSyncKey = `${selectedGalpon?.id ?? 'none'}:${assignedFincaIds.join(',')}`;
   const [fincaOverride, setFincaOverride] = useState<string | null>(null);
-  const [lastFincaSyncKey, setLastFincaSyncKey] = useState(fincaSyncKey);
-  if (fincaSyncKey !== lastFincaSyncKey) {
-    setLastFincaSyncKey(fincaSyncKey);
+  const [syncedGalponId, setSyncedGalponId] = useState<number | undefined>(selectedGalpon?.id);
+  if (selectedGalpon?.id !== syncedGalponId) {
+    setSyncedGalponId(selectedGalpon?.id);
     setFincaOverride(null);
   }
   const selectedFincaId = fincaOverride ?? defaultFincaId;

@@ -21,16 +21,14 @@ const ProduccionService = {
       cantidad: entry.cantidad,
     }));
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('produccion')
-      .insert(rows)
-      .select();
+      .insert(rows);
 
     if (error) {
       logServiceError('Error al registrar clasificación en lote:', error);
       throw error;
     }
-    return data;
   },
 
   /**

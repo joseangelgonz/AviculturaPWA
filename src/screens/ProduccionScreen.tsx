@@ -4,8 +4,11 @@ import {
   Box,
   Button,
   CircularProgress,
+  Grid,
   Paper,
   Stack,
+  Tab,
+  Tabs,
   Table,
   TableBody,
   TableCell,
@@ -221,6 +224,9 @@ const buildProductoMatrix = (productoRows: ProductoProduccionRow[]) => {
   return { fincas, productos };
 };
 
+const FINCA_CARD_LAYOUT_THRESHOLD = 3;
+const FINCA_MATRIX_TAB_THRESHOLD = 3;
+
 const ProduccionScreen = () => {
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [rows, setRows] = useState<FincaProduccionRow[]>([]);
@@ -228,6 +234,7 @@ const ProduccionScreen = () => {
   const [productoRows, setProductoRows] = useState<ProductoProduccionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [matrixTab, setMatrixTab] = useState(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -257,6 +264,13 @@ const ProduccionScreen = () => {
     [rows],
   );
   const productoMatrix = useMemo(() => buildProductoMatrix(productoRows), [productoRows]);
+  const useFincaCards = rows.length > FINCA_CARD_LAYOUT_THRESHOLD;
+  const useMatrixTabs = productoMatrix.fincas.length > FINCA_MATRIX_TAB_THRESHOLD;
+
+  useEffect(() => {
+    setMatrixTab(0);
+  }, [selectedDate, productoMatrix.fincas.length]);
+
   const productoMatrixTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const finca of productoMatrix.fincas) {
@@ -306,11 +320,41 @@ const ProduccionScreen = () => {
         </Alert>
       )}
 
-      <Paper sx={{ borderRadius: 'var(--ds-radius-lg, 10px)', overflow: 'hidden' }}>
+      <Paper sx={{ borderRadius: 'var(--ds-radius-lg, 10px)', overflow: 'hidden', p: useFincaCards ? 2 : 0 }}>
         {loading ? (
           <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
             <CircularProgress size={28} />
           </Box>
+        ) : rows.length === 0 ? (
+          <Typography sx={{ py: 2, px: 2, color: 'text.secondary' }}>
+            No hay produccion registrada para la fecha seleccionada.
+          </Typography>
+        ) : useFincaCards ? (
+          <Stack spacing={2}>
+            <Grid container spacing={1.5}>
+              {rows.map((row) => (
+                <Grid key={row.fincaId} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Paper variant="outlined" sx={{ p: 1.5, height: '100%' }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      {row.fincaNombre}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {row.fincaUbicacion || 'Sin ubicación'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Galpones con registro: {row.galponesConRegistro}
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.5 }}>
+                      {row.totalHuevos} huevos
+                    </Typography>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+            <Typography variant="body2" sx={{ fontWeight: 700, textAlign: 'right' }}>
+              Total general: {totalGeneral} huevos
+            </Typography>
+          </Stack>
         ) : (
           <Table size="small">
             <TableHead>
@@ -323,31 +367,19 @@ const ProduccionScreen = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <Typography sx={{ py: 2, color: 'text.secondary' }}>
-                      No hay produccion registrada para la fecha seleccionada.
-                    </Typography>
-                  </TableCell>
+              {rows.map((row) => (
+                <TableRow key={row.fincaId} hover>
+                  <TableCell>{row.fincaId}</TableCell>
+                  <TableCell>{row.fincaNombre}</TableCell>
+                  <TableCell>{row.fincaUbicacion || '-'}</TableCell>
+                  <TableCell>{row.galponesConRegistro}</TableCell>
+                  <TableCell align="right">{row.totalHuevos}</TableCell>
                 </TableRow>
-              ) : (
-                rows.map((row) => (
-                  <TableRow key={row.fincaId} hover>
-                    <TableCell>{row.fincaId}</TableCell>
-                    <TableCell>{row.fincaNombre}</TableCell>
-                    <TableCell>{row.fincaUbicacion || '-'}</TableCell>
-                    <TableCell>{row.galponesConRegistro}</TableCell>
-                    <TableCell align="right">{row.totalHuevos}</TableCell>
-                  </TableRow>
-                ))
-              )}
-              {rows.length > 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} sx={{ fontWeight: 700 }}>Total general</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>{totalGeneral}</TableCell>
-                </TableRow>
-              )}
+              ))}
+              <TableRow>
+                <TableCell colSpan={4} sx={{ fontWeight: 700 }}>Total general</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700 }}>{totalGeneral}</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         )}
@@ -406,72 +438,46 @@ const ProduccionScreen = () => {
             <Box sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
               <CircularProgress size={24} />
             </Box>
-          ) : (
-            <TableContainer
-              sx={{
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch',
-              }}
-            >
-              <Table size="small" sx={{ minWidth: 640 + productoMatrix.fincas.length * 120 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell
-                      sx={{
-                        fontWeight: 700,
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 2,
-                        bgcolor: 'background.paper',
-                        minWidth: 160,
-                      }}
-                    >
-                      Tipo
-                    </TableCell>
-                    {productoMatrix.fincas.map((finca) => (
-                      <TableCell
-                        key={`${finca.fincaId ?? 'sin-finca'}`}
-                        sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }}
-                        align="right"
-                      >
-                        {finca.fincaNombre}
-                      </TableCell>
-                    ))}
-                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
-                      Total huevos
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {productoMatrix.productos.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={productoMatrix.fincas.length + 2}
-                        sx={{
-                          position: 'sticky',
-                          left: 0,
-                          bgcolor: 'background.paper',
-                          zIndex: 1,
-                        }}
-                      >
-                        <Typography sx={{ py: 2, color: 'text.secondary' }}>
-                          No hay registros por tipo de huevo en la fecha seleccionada.
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <>
+          ) : productoMatrix.productos.length === 0 ? (
+            <Typography sx={{ py: 2, px: 2, color: 'text.secondary' }}>
+              No hay registros por tipo de huevo en la fecha seleccionada.
+            </Typography>
+          ) : useMatrixTabs ? (
+            <Box sx={{ px: 1, pb: 1 }}>
+              <Tabs
+                value={matrixTab}
+                onChange={(_event, value: number) => setMatrixTab(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{ mb: 1.5, borderBottom: 1, borderColor: 'divider' }}
+              >
+                <Tab label="Todas" />
+                {productoMatrix.fincas.map((finca) => (
+                  <Tab key={`${finca.fincaId ?? 'sin-finca'}`} label={finca.fincaNombre} />
+                ))}
+              </Tabs>
+              {matrixTab === 0 ? (
+                <TableContainer sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <Table size="small" sx={{ minWidth: 640 + productoMatrix.fincas.length * 120 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700, position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 160 }}>
+                          Tipo
+                        </TableCell>
+                        {productoMatrix.fincas.map((finca) => (
+                          <TableCell key={`${finca.fincaId ?? 'sin-finca'}`} sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
+                            {finca.fincaNombre}
+                          </TableCell>
+                        ))}
+                        <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
+                          Total huevos
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
                       {productoMatrix.productos.map((row) => (
                         <TableRow key={row.productoCodigo} hover>
-                          <TableCell
-                            sx={{
-                              position: 'sticky',
-                              left: 0,
-                              zIndex: 1,
-                              bgcolor: 'background.paper',
-                              minWidth: 160,
-                            }}
-                          >
+                          <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper', minWidth: 160 }}>
                             {row.productoNombre}
                           </TableCell>
                           {productoMatrix.fincas.map((finca) => {
@@ -485,32 +491,107 @@ const ProduccionScreen = () => {
                           <TableCell align="right">{row.totalHuevos}</TableCell>
                         </TableRow>
                       ))}
-                      <TableRow>
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 1,
-                            bgcolor: 'background.paper',
-                          }}
-                        >
-                          Total finca
-                        </TableCell>
-                        {productoMatrix.fincas.map((finca) => {
-                          const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
-                          return (
-                            <TableCell key={fincaKey} align="right" sx={{ fontWeight: 700 }}>
-                              {productoMatrixTotals[fincaKey] ?? 0}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                (() => {
+                  const finca = productoMatrix.fincas[matrixTab - 1];
+                  const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+                  const fincaProductos = productoMatrix.productos
+                    .map((row) => ({
+                      productoCodigo: row.productoCodigo,
+                      productoNombre: row.productoNombre,
+                      cantidad: row.valoresPorFinca[fincaKey] ?? 0,
+                    }))
+                    .filter((row) => row.cantidad > 0);
+                  const fincaTotal = productoMatrixTotals[fincaKey] ?? 0;
+                  return (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }} align="right">Cantidad</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {fincaProductos.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={2}>
+                              <Typography sx={{ py: 1, color: 'text.secondary' }}>
+                                Sin producción en esta finca para la fecha.
+                              </Typography>
                             </TableCell>
-                          );
-                        })}
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>
-                          {totalGeneral}
+                          </TableRow>
+                        ) : (
+                          fincaProductos.map((row) => (
+                            <TableRow key={row.productoCodigo} hover>
+                              <TableCell>{row.productoNombre}</TableCell>
+                              <TableCell align="right">{row.cantidad}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700 }}>Total finca</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>{fincaTotal}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  );
+                })()
+              )}
+            </Box>
+          ) : (
+            <TableContainer sx={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <Table size="small" sx={{ minWidth: 640 + productoMatrix.fincas.length * 120 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, position: 'sticky', left: 0, zIndex: 2, bgcolor: 'background.paper', minWidth: 160 }}>
+                      Tipo
+                    </TableCell>
+                    {productoMatrix.fincas.map((finca) => (
+                      <TableCell key={`${finca.fincaId ?? 'sin-finca'}`} sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
+                        {finca.fincaNombre}
+                      </TableCell>
+                    ))}
+                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap', minWidth: 120 }} align="right">
+                      Total huevos
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {productoMatrix.productos.map((row) => (
+                    <TableRow key={row.productoCodigo} hover>
+                      <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper', minWidth: 160 }}>
+                        {row.productoNombre}
+                      </TableCell>
+                      {productoMatrix.fincas.map((finca) => {
+                        const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+                        return (
+                          <TableCell key={fincaKey} align="right">
+                            {row.valoresPorFinca[fincaKey] ?? 0}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell align="right">{row.totalHuevos}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper' }}>
+                      Total finca
+                    </TableCell>
+                    {productoMatrix.fincas.map((finca) => {
+                      const fincaKey = `${finca.fincaId ?? 'sin-finca'}`;
+                      return (
+                        <TableCell key={fincaKey} align="right" sx={{ fontWeight: 700 }}>
+                          {productoMatrixTotals[fincaKey] ?? 0}
                         </TableCell>
-                      </TableRow>
-                    </>
-                  )}
+                      );
+                    })}
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      {totalGeneral}
+                    </TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>

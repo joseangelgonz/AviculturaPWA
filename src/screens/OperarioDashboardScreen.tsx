@@ -1,6 +1,6 @@
 import { Box, Typography, Grid, Card, CardContent, Button, Chip, Alert, Stack, TextField, MenuItem } from '@mui/material';
 import { Package, Wheat, HeartCrack, Tags, ArrowRight } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
@@ -52,17 +52,20 @@ const OperarioDashboardScreen = () => {
     [assignedGalpones],
   );
 
-  const [selectedFincaId, setSelectedFincaId] = useState<string>('');
-
-  useEffect(() => {
-    if (selectedGalpon) {
-      setSelectedFincaId(selectedGalpon.finca_id.toString());
-    } else if (assignedFincaIds.length > 0) {
-      setSelectedFincaId(assignedFincaIds[0].toString());
-    } else {
-      setSelectedFincaId('');
-    }
+  const defaultFincaId = useMemo(() => {
+    if (selectedGalpon) return selectedGalpon.finca_id.toString();
+    if (assignedFincaIds.length > 0) return assignedFincaIds[0].toString();
+    return '';
   }, [selectedGalpon, assignedFincaIds]);
+
+  const fincaSyncKey = `${selectedGalpon?.id ?? 'none'}:${assignedFincaIds.join(',')}`;
+  const [fincaOverride, setFincaOverride] = useState<string | null>(null);
+  const [lastFincaSyncKey, setLastFincaSyncKey] = useState(fincaSyncKey);
+  if (fincaSyncKey !== lastFincaSyncKey) {
+    setLastFincaSyncKey(fincaSyncKey);
+    setFincaOverride(null);
+  }
+  const selectedFincaId = fincaOverride ?? defaultFincaId;
 
   const filteredGalpones = useMemo(() => {
     if (!selectedFincaId) return [];
@@ -105,7 +108,7 @@ const OperarioDashboardScreen = () => {
                   select
                   label="Finca"
                   value={selectedFincaId}
-                  onChange={(event) => setSelectedFincaId(event.target.value)}
+                  onChange={(event) => setFincaOverride(event.target.value)}
                   sx={{ minWidth: 220 }}
                   disabled={assignedFincaIds.length === 0}
                 >

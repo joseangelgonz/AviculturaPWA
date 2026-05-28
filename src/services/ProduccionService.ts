@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { logServiceError } from './supabaseErrors';
+import { getSupabaseErrorMessage, logServiceError } from './supabaseErrors';
 
 const ProduccionService = {
   /**
@@ -21,16 +21,14 @@ const ProduccionService = {
       cantidad: entry.cantidad,
     }));
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('produccion')
-      .insert(rows)
-      .select();
+      .insert(rows);
 
     if (error) {
       logServiceError('Error al registrar clasificación en lote:', error);
-      throw error;
+      throw new Error(getSupabaseErrorMessage(error, 'No se pudo registrar la clasificación.'));
     }
-    return data;
   },
 
   /**
@@ -117,6 +115,33 @@ const ProduccionService = {
       return data[0].fecha;
     }
     return null;
+  },
+
+  /**
+   * Obtiene el detalle de produccion diaria para una fecha dada.
+   */
+  async getProduccionDiariaDetalle(fecha: string) {
+    const { data, error } = await supabase
+      .from('produccion')
+      .select('cantidad, galpon_id, producto_codigo, galpones(finca_id, nombre, fincas(id, nombre, ubicacion)), productos(codigo, descripcion)')
+      .eq('fecha', fecha);
+
+    if (error) {
+      logServiceError('Error al obtener detalle de produccion diaria:', error);
+      throw error;
+    }
+
+    return (data ?? []) as Array<{
+      cantidad: number;
+      galpon_id: number;
+      producto_codigo: number;
+      galpones: {
+        finca_id: number;
+        nombre: string;
+        fincas: { id: number; nombre: string; ubicacion: string | null } | null;
+      } | null;
+      productos: { codigo: number; descripcion: string | null } | null;
+    }>;
   },
 };
 

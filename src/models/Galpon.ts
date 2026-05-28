@@ -6,4 +6,9 @@ export interface Galpon {
   capacidad: number | null;
   saldo_aves: number;
   created_at: string | null;
+  fincas?: {
+    id: number;
+    nombre: string;
+    ubicacion?: string | null;
+  } | null;
 }

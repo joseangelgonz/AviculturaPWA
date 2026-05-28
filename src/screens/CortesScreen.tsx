@@ -56,7 +56,7 @@ const CortesScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmUnderUtil, setConfirmUnderUtil] = useState(false);
-  const [confirmFinalizar, setConfirmFinalizar] = useState<Corte | null>(null);
+  const [finalizarTarget, setFinalizarTarget] = useState<Corte | null>(null);
 
   const [fechaInicio, setFechaInicio] = useState(dayjs().format('YYYY-MM-DD'));
   const [selectedRazaAveId, setSelectedRazaAveId] = useState('');
@@ -296,18 +296,23 @@ const CortesScreen = () => {
   };
 
   const handleFinalizar = (corte: Corte) => {
-    setConfirmFinalizar(corte);
+    if (!Number.isFinite(corte.id)) return;
+    setFinalizarTarget(corte);
+  };
+
+  const handleCloseFinalizar = () => {
+    setFinalizarTarget(null);
   };
 
   const doFinalizar = async () => {
-    if (!confirmFinalizar) return;
-    const corte = confirmFinalizar;
-    setConfirmFinalizar(null);
-    setFinalizingId(corte.id);
+    if (!finalizarTarget) return;
+    const corteId = finalizarTarget.id;
+    setFinalizarTarget(null);
+    setFinalizingId(corteId);
     setError(null);
 
     try {
-      await CorteService.finalizarCorte(corte.id, dayjs().format('YYYY-MM-DD'));
+      await CorteService.finalizarCorte(corteId, dayjs().format('YYYY-MM-DD'));
       await loadData();
     } catch (err) {
       console.error('Error finalizing corte:', err);
@@ -429,7 +434,7 @@ const CortesScreen = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => void handleFinalizar(corte)}
+                                onClick={() => handleFinalizar(corte)}
                                 disabled={finalizingId === corte.id}
                               >
                                 <Check size={16} strokeWidth={1.8} aria-hidden />
@@ -574,7 +579,7 @@ const CortesScreen = () => {
                 startIcon={<Plus size={16} strokeWidth={1.85} aria-hidden />}
                 disabled={!selectedFincaId}
               >
-                Agregar galpon
+                Agregar galpón
               </Button>
               <Typography variant="body2" color={Number.isInteger(parsedTotal) && parsedTotal === parsedSum ? 'success.main' : 'text.secondary'}>
                 Suma detalle: {parsedSum} / Total: {Number.isFinite(parsedTotal) ? parsedTotal : 0}
@@ -623,16 +628,18 @@ const CortesScreen = () => {
       </Dialog>
 
       {/* Confirmación finalizar corte */}
-      <Dialog open={confirmFinalizar !== null} onClose={() => setConfirmFinalizar(null)}>
+      <Dialog open={finalizarTarget !== null} onClose={handleCloseFinalizar}>
         <DialogTitle>Finalizar corte</DialogTitle>
         <DialogContent>
-          <Typography>
-            Se finalizará el corte #{confirmFinalizar?.id}. ¿Desea continuar?
-          </Typography>
+          {finalizarTarget && (
+            <Typography>
+              Se finalizará el corte #{finalizarTarget.id}. ¿Desea continuar?
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmFinalizar(null)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => void doFinalizar()}>
+          <Button type="button" onClick={handleCloseFinalizar}>Cancelar</Button>
+          <Button type="button" variant="contained" onClick={() => void doFinalizar()}>
             Finalizar
           </Button>
         </DialogActions>

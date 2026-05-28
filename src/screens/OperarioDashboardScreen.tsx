@@ -1,13 +1,14 @@
-import { Box, Typography, Grid, Card, CardContent, Button, Chip, Alert } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Button } from '@mui/material';
 import { Package, Wheat, HeartCrack, Tags, ArrowRight } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import OperarioGalponSelector from '../components/OperarioGalponSelector';
 import { useSelectedGalpon } from '../hooks/useSelectedGalpon';
 
 const OperarioDashboardScreen = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedGalpon } = useSelectedGalpon();
+  const { selectedGalpon, setSelectedGalpon, assignedGalpones } = useSelectedGalpon();
   const isIndex = location.pathname === '/operario' || location.pathname === '/';
 
   const quickActions = [
@@ -53,19 +54,14 @@ const OperarioDashboardScreen = () => {
             </Typography>
           </Box>
 
-          {selectedGalpon ? (
-            <Box className="premium-fade-up premium-delay-1">
-              <Chip
-                label={`Galpon activo: ${selectedGalpon.nombre} (#${selectedGalpon.id})`}
-                variant="outlined"
-                sx={{ mb: 2.25 }}
-              />
-            </Box>
-          ) : (
-            <Alert className="premium-fade-up premium-delay-1" severity="info" variant="outlined" sx={{ mb: 2.25 }}>
-              No hay galpon asignado actualmente.
-            </Alert>
-          )}
+          <Box className="premium-fade-up premium-delay-1" sx={{ mb: 2.25 }}>
+            <OperarioGalponSelector
+              key={selectedGalpon?.id ?? 'sin-galpon'}
+              assignedGalpones={assignedGalpones}
+              selectedGalpon={selectedGalpon}
+              onSelectGalpon={setSelectedGalpon}
+            />
+          </Box>
 
           <Grid className="premium-fade-up premium-delay-2" container spacing={2}>
             {quickActions.map((item) => (

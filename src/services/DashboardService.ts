@@ -21,17 +21,10 @@ export interface EggClassificationBreakdown {
   readonly count: number;
 }
 
-export interface DashboardAlert {
-  readonly id: string;
-  readonly severity: 'error' | 'warning' | 'info';
-  readonly message: string;
-}
-
 export interface DashboardData {
   readonly kpis: KpiSummary;
   readonly chart: DailyProductionPoint[];
   readonly classification: EggClassificationBreakdown[];
-  readonly alerts: DashboardAlert[];
 }
 
 type DailyRecordRow = {
@@ -206,87 +199,10 @@ function deriveClassification(produccion: Produccion[], productMap: Map<number, 
     .filter((item) => item.count > 0);
 }
 
-function deriveAlerts(
-  cortes: CorteRow[],
-  corteGalponesMap: Map<number, number[]>,
-  produccion: Produccion[],
-  dailyRecords: DailyRecordRow[],
-  todayDate: string,
-  sevenDaysAgoDate: string
-): DashboardAlert[] {
-  const alerts: DashboardAlert[] = [];
-  const totalAves = cortes.reduce((sum, c) => sum + c.numero_aves_total, 0);
-
-  const todayRows = produccion.filter((p) => p.fecha === todayDate);
-
-  // Sin datos hoy por corte
-  const galponesConDatosHoy = new Set(todayRows.map((d) => d.galpon_id));
-  for (const corte of cortes) {
-    const corteGalponIds = corteGalponesMap.get(corte.id) ?? [];
-    const sinDatos = corteGalponIds.some((gid) => !galponesConDatosHoy.has(gid));
-    if (corteGalponIds.length > 0 && sinDatos) {
-      alerts.push({
-        id: `sin-datos-${corte.id}`,
-        severity: 'info',
-        message: `Corte #${corte.id} no tiene datos de producción para hoy.`,
-      });
-    }
-  }
-
-  // Mortalidad alta (from registro_mortalidad aggregated by galpon/fecha)
-  const weekDailyRecords = dailyRecords.filter((r) => r.fecha >= sevenDaysAgoDate);
-  for (const corte of cortes) {
-    const corteGalponIds = new Set(corteGalponesMap.get(corte.id) ?? []);
-    const corteRecords = weekDailyRecords.filter((r) => {
-      if (r.numero_aves_muertas <= 0) return false;
-      if (r.corte_id != null) return r.corte_id === corte.id;
-      return corteGalponIds.has(r.galpon_id);
-    });
-    if (corteRecords.length === 0) continue;
-
-    const todayMortality = corteRecords
-      .filter((r) => r.fecha === todayDate)
-      .reduce((sum, r) => sum + r.numero_aves_muertas, 0);
-
-    const pastRecords = corteRecords.filter((r) => r.fecha < todayDate);
-    const pastMortality = pastRecords.reduce((sum, r) => sum + r.numero_aves_muertas, 0);
-    const pastDays = pastRecords.length;
-    const avgMortality = pastDays > 0 ? pastMortality / pastDays : 0;
-
-    if (todayMortality > avgMortality * 2 && avgMortality > 0) {
-      alerts.push({
-        id: `mortalidad-${corte.id}`,
-        severity: 'error',
-        message: `Alta mortalidad en Corte #${corte.id}: ${todayMortality} muertes hoy (promedio: ${Math.round(avgMortality)}).`,
-      });
-    }
-  }
-
-  // Baja producción (tasa < 80%)
-  if (totalAves > 0) {
-    const todayEggProduction = todayRows.reduce((sum, p) => sum + p.cantidad, 0);
-    const rate = (todayEggProduction / totalAves) * 100;
-
-    if (rate < 80 && rate > 0) {
-      alerts.push({
-        id: 'baja-produccion',
-        severity: 'warning',
-        message: `Tasa de producción de huevos baja: ${rate.toFixed(1)}% (objetivo: ≥80%).`,
-      });
-    }
-  }
-
-  const severityOrder = { error: 0, warning: 1, info: 2 };
-  alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
-
-  return alerts;
-}
-
 const EMPTY_DASHBOARD: DashboardData = {
   kpis: { todayProduction: null, productionRate: null, weeklyMortality: null, fcr: null },
   chart: [],
   classification: [],
-  alerts: [{ id: 'no-cortes', severity: 'info', message: 'No hay cortes activos. Crea un corte para comenzar a registrar producción.' }],
 };
 
 const DashboardService = {
@@ -352,23 +268,14 @@ const DashboardService = {
     const produccionRows = (produccionResult.data ?? []) as Produccion[];
     const products = (productosResult.data ?? []) as Producto[];
     const productMap = new Map<number, Producto>(products.map((p) => [p.codigo, p]));
-
-    // 3. Construir mapa corte -> galpon_ids para alertas
-    const corteGalponesMap = new Map<number, number[]>();
-    for (const cg of corteGalpones) {
-      const current = corteGalponesMap.get(cg.corte_id) ?? [];
-      current.push(cg.galpon_id);
-      corteGalponesMap.set(cg.corte_id, current);
-    }
-
-    // 4. Derivar todos los datos
+    // 3. Derivar todos los datos
     return {
       kpis: deriveKpis(corteRows, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
       chart: deriveChart(produccionRows),
       classification: deriveClassification(produccionRows, productMap, todayDate),
-      alerts: deriveAlerts(corteRows, corteGalponesMap, produccionRows, dailyRecords, todayDate, sevenDaysAgoDate),
     };
   },
 };
 
 export default DashboardService;
+

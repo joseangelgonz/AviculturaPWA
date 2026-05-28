@@ -19,6 +19,10 @@ import { SelectedGalponProvider } from './components/SelectedGalponProvider';
 import type { AuthState } from './AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import CortesScreen from './screens/CortesScreen';
+import FincasScreen from './screens/FincasScreen';
+import GalponesScreen from './screens/GalponesScreen';
+import ProduccionScreen from './screens/ProduccionScreen';
+import OperariosAsignacionesScreen from './screens/OperariosAsignacionesScreen';
 
 // --- Placeholder para rutas futuras ---
 const Placeholder = ({ title }: { title: string }) => (
@@ -109,12 +113,13 @@ function App() {
               ) : (
                 <DashboardScreen />
               )} />
-              <Route path="/produccion" element={<Placeholder title="Producción" />} />
-              <Route path="/galpones" element={<Placeholder title="Galpones" />} />
+              <Route path="/produccion" element={<RoleGuard allowedRoles={['administrador']}><ProduccionScreen /></RoleGuard>} />
+              <Route path="/asignaciones" element={<RoleGuard allowedRoles={['administrador']}><OperariosAsignacionesScreen /></RoleGuard>} />
+              <Route path="/galpones" element={<RoleGuard allowedRoles={['administrador']}><GalponesScreen /></RoleGuard>} />
               <Route path="/cortes" element={<RoleGuard allowedRoles={['administrador']}><CortesScreen /></RoleGuard>} />
-              <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Fincas" /></RoleGuard>} />
+              <Route path="/fincas" element={<RoleGuard allowedRoles={['administrador']}><FincasScreen /></RoleGuard>} />
               <Route path="/reportes" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Reportes" /></RoleGuard>} />
-              <Route path="/alertas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Alertas" /></RoleGuard>} />
+              <Route path="/alertas" element={<RoleGuard allowedRoles={['administrador']}><Placeholder title="Alertas (TODO Edge Functions)" /></RoleGuard>} />
               <Route path="/operario" element={<RoleGuard allowedRoles={['operario']}><SelectedGalponProvider><OperarioDashboardScreen /></SelectedGalponProvider></RoleGuard>}>
                 <Route path="recoleccion" element={<RecoleccionForm />} />
                 <Route path="alimentacion" element={<AlimentacionForm />} />
@@ -130,3 +135,4 @@ function App() {
 }
 
 export default App;
+

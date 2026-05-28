@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { logServiceError } from './supabaseErrors';
+import { getSupabaseErrorMessage, logServiceError } from './supabaseErrors';
 
 interface CausaMortalidad {
   codigo: string;
@@ -33,7 +33,7 @@ const RegistroDiarioGalponService = {
         throw new Error('Faltan datos de alimentación para registrar el día.');
       }
 
-      const { data: feedResult, error: feedError } = await supabase
+      const { error: feedError } = await supabase
         .from('registro_alimentacion_galpon')
         .upsert(
           {
@@ -43,15 +43,12 @@ const RegistroDiarioGalponService = {
             cantidad_alimento_bultos: data.cantidad_alimento_bultos,
           },
           { onConflict: 'galpon_id,fecha' }
-        )
-        .select();
+        );
 
       if (feedError) {
         logServiceError('Error upserting feed daily record:', feedError);
-        throw feedError;
+        throw new Error(getSupabaseErrorMessage(feedError, 'No se pudo registrar la alimentación.'));
       }
-
-      resultRows.push(...(feedResult ?? []));
     }
 
     if (hasMortalityData) {
@@ -74,7 +71,7 @@ const RegistroDiarioGalponService = {
 
       const nextNumeroSecuencia = (lastRows?.[0]?.numero_secuencia ?? 0) + 1;
 
-      const { data: mortalityResult, error: mortalityError } = await supabase
+      const { error: mortalityError } = await supabase
         .from('registro_mortalidad')
         .insert([
           {
@@ -84,15 +81,12 @@ const RegistroDiarioGalponService = {
             causa_mortalidad_codigo: data.causa_mortalidad_codigo,
             cantidad_aves_muertas: data.numero_aves_muertas,
           },
-        ])
-        .select();
+        ]);
 
       if (mortalityError) {
         logServiceError('Error al insertar mortalidad diaria:', mortalityError);
-        throw mortalityError;
+        throw new Error(getSupabaseErrorMessage(mortalityError, 'No se pudo registrar la mortalidad.'));
       }
-
-      resultRows.push(...(mortalityResult ?? []));
     }
 
     return resultRows;

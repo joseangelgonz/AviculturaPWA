@@ -22,6 +22,7 @@ const DRAWER_WIDTH_COLLAPSED = 56;
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Panel',
   '/produccion': 'Produccion',
+  '/asignaciones': 'Asignaciones',
   '/galpones': 'Galpones',
   '/cortes': 'Cortes',
   '/fincas': 'Fincas',

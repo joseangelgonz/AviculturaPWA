@@ -79,6 +79,14 @@ const AlimentacionForm = () => {
     }, 'No se pudo registrar la alimentación. Intenta de nuevo.');
   };
 
+  if (!loadingProductos && !errorProductos && alimentos.length === 0) {
+    return (
+      <Alert severity="warning" sx={{ mt: 2 }}>
+        No hay alimentos activos en el catálogo. Un administrador debe registrar alimentos antes de usar este formulario.
+      </Alert>
+    );
+  }
+
   return (
     <FormShell
       title="Registrar Alimentación Diaria"
